@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nina's English Vocabulary Quiz!</title>
+    <style>
+        /* Basic styling for the page */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center vertically for mode selection */
+            min-height: 100vh;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Container for the quiz elements */
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Mode Selection Styling */
+        #mode-selection {
+            padding: 40px 30px;
+        }
+        #mode-selection h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #333;
+        }
+        .mode-button {
+            display: block;
+            width: 80%;
+            margin: 15px auto;
+            padding: 15px 20px;
+            font-size: 1.1em; /* Adjusted size */
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .mode-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Quiz Area Styling (Initially hidden) */
+        #quiz-area {
+            display: none; /* Hide until mode is selected */
+        }
+
+        /* Header container for image and title */
+        .quiz-header {
+            position: relative;
+            width: 100%;
+            max-height: 250px;
+            overflow: hidden;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        /* Header Image Styling */
+        .header-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        /* Title styling (Overlay) */
+        .quiz-header h1 {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            padding: 8px 15px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 5px;
+            font-size: 1.6em;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            max-width: 90%;
+            box-sizing: border-box;
+        }
+
+        /* Container for the main quiz content below the header */
+        .quiz-content {
+             padding: 20px 30px;
+        }
+
+        /* Progress indicator styling */
+        #progress {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            min-height: 1.2em;
+        }
+
+        /* Prompt display styling (French word or Sentence) */
+        #prompt-display {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #0056b3;
+            margin-bottom: 25px;
+            min-height: 60px;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+         #prompt-display .blank {
+            font-weight: bold;
+            color: #dc3545;
+            text-decoration: underline;
+            /* Add space around blank for clarity */
+            margin: 0 4px;
+         }
+
+        /* Input field styling (Hidden in MC mode) */
+        #english-input {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+        }
+        #english-input:focus {
+            outline: none;
+            border-color: #0056b3;
+            box-shadow: 0 0 5px rgba(0, 86, 179, 0.3);
+        }
+
+        /* Submit Button styling (Hidden in MC mode) */
+        #submit-btn {
+            padding: 12px 25px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            margin-top: 10px; /* Add some space */
+        }
+        #submit-btn:hover { background-color: #218838; }
+        #submit-btn:active { transform: scale(0.98); }
+        #submit-btn:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        /* Multiple Choice Button Container */
+        #choices-container {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            align-items: center; /* Center buttons horizontally */
+            gap: 10px; /* Space between buttons */
+        }
+        .choice-button {
+            padding: 10px 15px;
+            font-size: 1em;
+            background-color: #6c757d; /* Greyish background */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 80%; /* Make buttons reasonably wide */
+            max-width: 300px; /* Max width */
+        }
+        .choice-button:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+        .choice-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        /* Style for selected correct/incorrect choice buttons */
+         .choice-button.selected-correct {
+             background-color: #28a745 !important; /* Green */
+             font-weight: bold;
+         }
+         .choice-button.selected-incorrect {
+             background-color: #dc3545 !important; /* Red */
+             font-weight: bold;
+         }
+         .choice-button.reveal-correct { /* Style to show correct if wrong one was picked */
+            background-color: #ffc107 !important; /* Yellow/Orange */
+            color: #333;
+            border: 2px solid #333;
+         }
+
+
+        /* Feedback message styling */
+        #feedback {
+            margin-top: 25px;
+            font-size: 1.1em;
+            min-height: 50px;
+            line-height: 1.4;
+            font-weight: bold;
+            text-align: left;
+            padding: 0 10px;
+        }
+        .correct { color: #28a745; text-align: center; }
+        .incorrect { color: #dc3545; text-align: center; }
+        .incorrect strong { color: #333; font-weight: normal; display: block; margin-top: 5px; }
+        .summary { color: #0056b3; font-weight: bold; text-align: center; }
+        #feedback .final-score-text { font-weight: bold; margin-bottom: 10px; display: block; text-align: center; }
+        #feedback .incorrect-list-title { font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #dc3545; text-align: center; }
+        #feedback ul.incorrect-list { list-style-type: disc; margin-left: 20px; padding-left: 20px; font-weight: normal; color: #333; text-align: left; }
+        #feedback ul.incorrect-list li { margin-bottom: 5px; }
+
+
+        /* Cheering Animation Container */
+        #animation-container {
+            position: absolute;
+            top: calc(50% + 60px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6em;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .animate-cheer { animation: cheer 1s ease-out forwards; }
+        @keyframes cheer {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) scale(1.2) rotate(15deg); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(-15deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 600px) {
+             .quiz-header { max-height: 350px; }
+             .quiz-header h1 { font-size: 1.8em; bottom: 15px; }
+             #animation-container { top: calc(50% + 75px); }
+             #prompt-display { font-size: 2.0em; }
+             .choice-button { font-size: 1.1em; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; align-items: center; }
+            .quiz-container { padding: 0; }
+             .quiz-header h1 { font-size: 1.3em; bottom: 5px; }
+             .quiz-content { padding: 15px 20px; }
+            #prompt-display { font-size: 1.6em; min-height: 50px; }
+            #english-input, #submit-btn { font-size: 1em; }
+            .choice-button { font-size: 0.95em; width: 90%; }
+            #feedback { font-size: 1em; min-height: 40px; }
+            #animation-container { font-size: 5em; top: calc(50% + 60px); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+
+        <div id="mode-selection">
+            <h2>Choose Your Quiz Mode!</h2>
+            <button class="mode-button" onclick="startQuiz('vocabulary')">Vocabulary Quiz (French ➔ English)</button>
+            <button class="mode-button" onclick="startQuiz('sentence')">Multiple Choice (Sentences)</button>
+        </div>
+
+        <div id="quiz-area">
+            <div class="quiz-header">
+                <img src="7a9baa0d-4b6b-4936-b28f-4b06e1b8cc46.jpg"
+                     alt="Pixar style rabbit teacher in classroom"
+                     class="header-image"
+                     onerror="this.style.display='none';">
+                <h1>Nina's English Vocabulary Quiz!</h1>
+            </div>
+
+            <div class="quiz-content">
+                <div id="progress"></div>
+                <div id="prompt-display">Loading...</div>
+
+                <input type="text" id="english-input" autocomplete="off" autocapitalize="none">
+                <button id="submit-btn">Check Answer</button>
+
+                <div id="choices-container"></div>
+
+                <div id="feedback"></div> </div>
+
+            <div id="animation-container">🎉</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Embedded Vocabulary Data (Fallback) ---
+        // This will be used if the TSV file fails to load.
+        const embeddedVocabulary = [
+            { french: "allume la lumière", english: ["switch on the light", "turn on the light"] },
+            { french: "que", english: ["who", "what"] }, { french: "quand", english: "when" },
+            { french: "pourquoi", english: "why" }, { french: "où", english: "where" },
+            { french: "comment", english: "how" }, { french: "combien", english: ["how many", "how much"] },
+            { french: "quel âge", english: "how old" }, { french: "lèvres", english: "lips" },
+            { french: "témoin", english: "witness" }, { french: "beaucoup", english: ["many", "much", "a lot of", "a lot"] },
+            { french: "à propos", english: "about" }, { french: "casque", english: ["headphones", "headset"] },
+            { french: "livre", english: "book" }, { french: "poubelle", english: ["rubbish bin", "litter bin", "dust bin", "trash can", "bin"] },
+            { french: "horloge", english: "clock" }, { french: "dire", english: "to say" },
+            { french: "différent", english: "different" }, { french: "trophée", english: "trophy" },
+            { french: "médaille", english: "medal" }, { french: "entendre", english: "to hear" },
+            { french: "sentir", english: "to smell" }, { french: "voir", english: "to see" },
+            { french: "donc", english: "so" }, { french: "bande dessinée", english: ["comic", "comic book"] },
+            { french: "fournitures scolaires", english: "school supplies" }, { french: "drapeau", english: "flag" },
+            { french: "souvenir", english: "souvenir" }, { french: "escalade", english: "climbing" },
+            { french: "se soucier de", english: "to care about" }, { french: "être méchant", english: "to be naughty" },
+            { french: "le temps", english: "the weather" }, { french: "parler", english: "to talk" },
+            { french: "marcher", english: "to walk" }, { french: "travailler", english: "to work" },
+            { french: "rêver", english: "to dream" }, { french: "ranger", english: "to tidy up" },
+            { french: "ordonné", english: "tidy" }, { french: "désordonné", english: "messy" },
+            { french: "passer du temps", english: "to spend time" }, { french: "rouge à lèvres", english: "lipstick" },
+            { french: "personne ne manque", english: "nobody is missing" }, { french: "bonnes vagues", english: "good waves" },
+            { french: "gaspiller", english: "to waste" }, { french: "apprécier", english: "to enjoy" }
+        ];
+
+        // --- Sentence Completion Data ---
+        const sentences = [
+            { sentence: "Please ___ on the light, it's dark in here.", answer: "turn" },
+            { sentence: "I need new ___ because my old ones are broken.", answer: "headphones" },
+            { sentence: "Harry Potter is a famous ___ about wizards.", answer: "book" },
+            { sentence: "Don't throw that away, put it in the ___.", answer: "bin" },
+            { sentence: "Look at the time on the wall ___.", answer: "clock" },
+            { sentence: "It's polite ___ 'thank you'.", answer: "to say" },
+            { sentence: "She won a gold ___ in the competition.", answer: "medal" },
+            { sentence: "Can you ___ the music? It's very quiet.", answer: "hear" },
+            { sentence: "I love ___ flowers in the spring.", answer: "to smell" },
+            { sentence: "Did you ___ that bird in the tree?", answer: "see" },
+            { sentence: "I like reading a good ___ on the weekend.", answer: "comic" },
+            { sentence: "We bought a nice ___ on our holiday.", answer: "souvenir" },
+            { sentence: "He really seems ___ his new puppy.", answer: "to care about" },
+            { sentence: "What's the ___ like today? Is it sunny?", answer: "weather" },
+            { sentence: "Let's ___ to the park instead of driving.", answer: "walk" },
+            { sentence: "I have ___ hard to finish this project.", answer: "to work" },
+            { sentence: "She hopes ___ of flying tonight.", answer: "to dream" },
+            { sentence: "My room is very ___, I need to clean it.", answer: "messy" },
+            { sentence: "Don't ___ your time playing video games all day.", answer: "waste" },
+            { sentence: "I really ___ listening to this type of music.", answer: "enjoy" }
+        ];
+
+        // Filter out any potentially invalid entries
+        const validSentences = sentences.filter(item => item.sentence && item.answer && item.sentence.includes("___"));
+        // Create a flat list of unique English words/phrases for distractors from embedded data
+        const allEnglishAnswersFromEmbedded = [...new Set(embeddedVocabulary.flatMap(item => Array.isArray(item.english) ? item.english : [item.english]))];
+
+
+        // --- Quiz State Variables ---
+        let currentQuizData = [];
+        let quizMode = ''; // 'vocabulary' or 'sentence'
+        let currentItemIndex = 0;
+        let score = 0;
+        let blockScore = 0;
+        let blockItemCount = 0;
+        const blockSize = 10;
+        let isChecking = false;
+        let incorrectAnswers = []; // Stores the expected English answer for incorrect items
+        const numChoices = 4; // Number of choices for multiple choice
+        let allEnglishAnswersForDistractors = [...allEnglishAnswersFromEmbedded]; // Initialize with embedded
+
+        // --- DOM Element References ---
+        const modeSelectionDiv = document.getElementById('mode-selection');
+        const quizAreaDiv = document.getElementById('quiz-area');
+        const promptDisplayElement = document.getElementById('prompt-display');
+        const englishInputElement = document.getElementById('english-input');
+        const submitButton = document.getElementById('submit-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const feedbackElement = document.getElementById('feedback');
+        const animationContainer = document.getElementById('animation-container');
+        const progressElement = document.getElementById('progress');
+
+        // --- Core Functions ---
+
+        /**
+         * Loads vocabulary from a TSV file.
+         * @param {string} filePath - The path to the TSV file.
+         * @returns {Promise<Array>} - A promise that resolves to an array of vocabulary items.
+         */
+        async function loadVocabularyFromFile(filePath) {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} for file ${filePath}`);
+                }
+                const tsvData = await response.text();
+                const lines = tsvData.trim().split('\n');
+                const loadedVocabulary = [];
+
+                // Start from the second line (index 1) to skip headers
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split('\t');
+                    const frenchWord = values[0] ? values[0].trim() : "";
+                    // Get all non-empty English translations from the second column onwards
+                    const englishTranslations = values.slice(1).map(t => t.trim()).filter(translation => translation !== '');
+
+                    if (frenchWord && englishTranslations.length > 0) {
+                        loadedVocabulary.push({
+                            french: frenchWord,
+                            english: englishTranslations.length === 1 ? englishTranslations[0] : englishTranslations
+                        });
+                    }
+                }
+                console.log("Vocabulary loaded from TSV:", loadedVocabulary);
+                return loadedVocabulary;
+            } catch (error) {
+                console.error("Could not load vocabulary from file:", error);
+                alert("Error loading vocabulary file. Using embedded vocabulary as a fallback. Please ensure 'vocabulary.tsv' is in the same directory and your page is served by a web server.");
+                return []; // Return empty or default vocabulary in case of error
+            }
+        }
+
+
+        /**
+         * Starts the quiz with the selected mode.
+         * @param {string} mode - 'vocabulary' or 'sentence'.
+         */
+        async function startQuiz(mode) { // Made async to handle vocabulary loading
+            quizMode = mode;
+            currentItemIndex = 0;
+            score = 0;
+            blockScore = 0;
+            blockItemCount = 0;
+            incorrectAnswers = [];
+
+            // Configure UI based on mode
+            if (quizMode === 'vocabulary') {
+                const loadedVocab = await loadVocabularyFromFile('vocabulary.tsv');
+                if (loadedVocab && loadedVocab.length > 0) {
+                    currentQuizData = [...loadedVocab];
+                     // Update distractors list if TSV loaded successfully
+                    allEnglishAnswersForDistractors = [...new Set(loadedVocab.flatMap(item => Array.isArray(item.english) ? item.english : [item.english]))];
+                } else {
+                    currentQuizData = [...embeddedVocabulary]; // Fallback
+                    allEnglishAnswersForDistractors = [...allEnglishAnswersFromEmbedded]; // Use embedded for distractors
+                    console.warn("Using embedded vocabulary due to loading error or empty file.");
+                }
+                shuffle(currentQuizData);
+                englishInputElement.style.display = 'block';
+                submitButton.style.display = 'inline-block';
+                choicesContainer.style.display = 'none';
+                englishInputElement.placeholder = "Enter English translation";
+                submitButton.onclick = () => checkAnswer(); // Pass no arg for vocab mode
+                englishInputElement.onkeydown = (event) => {
+                    if (event.key === 'Enter') checkAnswer();
+                };
+            } else if (quizMode === 'sentence') {
+                currentQuizData = [...validSentences];
+                shuffle(currentQuizData);
+                // Ensure distractors are up-to-date (might have been changed by vocab mode)
+                // For sentence mode, it's often better to use a broader set if vocab TSV might not load
+                // or use the embedded one as a stable source for distractors
+                // For now, we'll assume allEnglishAnswersForDistractors is set by the last successful vocab load or embedded
+                englishInputElement.style.display = 'none';
+                submitButton.style.display = 'none';
+                choicesContainer.style.display = 'flex';
+                englishInputElement.onkeydown = null;
+            } else {
+                console.error("Invalid quiz mode selected");
+                return;
+            }
+
+            modeSelectionDiv.style.display = 'none';
+            quizAreaDiv.style.display = 'block';
+            document.body.style.alignItems = 'flex-start';
+
+            displayItem();
+        }
+
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        /**
+         * Gets random distractors for multiple choice.
+         */
+        function getDistractors(correctAnswer, count) {
+            const distractors = [];
+            const possibleDistractors = allEnglishAnswersForDistractors.filter(ans =>
+                ans.toLowerCase() !== correctAnswer.toLowerCase() && !ans.includes(' ') // Prefer single words
+            );
+            shuffle(possibleDistractors);
+
+            for (let i = 0; i < possibleDistractors.length && distractors.length < count; i++) {
+                if (!distractors.includes(possibleDistractors[i])) {
+                    distractors.push(possibleDistractors[i]);
+                }
+            }
+            // Fallback if not enough unique single-word distractors
+            const multiWordDistractors = allEnglishAnswersForDistractors.filter(ans =>
+                ans.toLowerCase() !== correctAnswer.toLowerCase() && ans.includes(' ')
+            );
+            shuffle(multiWordDistractors);
+            for (let i = 0; i < multiWordDistractors.length && distractors.length < count; i++) {
+                 if (!distractors.includes(multiWordDistractors[i])) {
+                    distractors.push(multiWordDistractors[i]);
+                }
+            }
+
+            while(distractors.length < count){
+                distractors.push("option " + (distractors.length + 1)); // Generic fallback
+            }
+            return distractors;
+        }
+
+
+        /**
+         * Displays the current item (word or sentence with choices).
+         */
+        function displayItem() {
+            isChecking = false;
+            if (currentItemIndex < currentQuizData.length) {
+                const currentItem = currentQuizData[currentItemIndex];
+
+                feedbackElement.textContent = '';
+                feedbackElement.className = '';
+                animationContainer.classList.remove('animate-cheer');
+                animationContainer.style.opacity = '0';
+                choicesContainer.innerHTML = '';
+
+                if (quizMode === 'vocabulary') {
+                    promptDisplayElement.textContent = currentItem.french;
+                    englishInputElement.value = '';
+                    englishInputElement.disabled = false;
+                    submitButton.disabled = false;
+                    englishInputElement.focus();
+                } else { // sentence mode (Multiple Choice)
+                    promptDisplayElement.innerHTML = currentItem.sentence.replace("___", `<span class="blank">___</span>`);
+                    englishInputElement.disabled = true;
+                    submitButton.disabled = true;
+
+                    const correctAnswer = currentItem.answer;
+                    const distractors = getDistractors(correctAnswer, numChoices - 1);
+                    const choices = [...distractors, correctAnswer];
+                    shuffle(choices);
+
+                    choices.forEach(choice => {
+                        const button = document.createElement('button');
+                        button.textContent = choice;
+                        button.classList.add('choice-button');
+                        button.onclick = (event) => checkAnswer(event.target.textContent);
+                        choicesContainer.appendChild(button);
+                    });
+                }
+                progressElement.textContent = `Item ${currentItemIndex + 1} of ${currentQuizData.length}`;
+            } else {
+                showFinalScore();
+            }
+        }
+
+        /**
+         * Checks the user's answer (from input or button click).
+         */
+        function checkAnswer(selectedChoice = null) {
+            if (isChecking || currentItemIndex >= currentQuizData.length) return;
+            isChecking = true;
+
+            const currentItem = currentQuizData[currentItemIndex];
+            let userAnswer = '';
+            let correctAnswers = [];
+            let expectedAnswerForReview = '';
+
+            if (quizMode === 'vocabulary') {
+                englishInputElement.disabled = true;
+                submitButton.disabled = true;
+                userAnswer = englishInputElement.value.trim().toLowerCase();
+                correctAnswers = Array.isArray(currentItem.english)
+                    ? currentItem.english.map(ans => ans.toLowerCase())
+                    : [currentItem.english.toLowerCase()];
+                expectedAnswerForReview = Array.isArray(currentItem.english) ? currentItem.english[0] : currentItem.english;
+            } else {
+                 const choiceButtons = choicesContainer.querySelectorAll('.choice-button');
+                choiceButtons.forEach(btn => btn.disabled = true);
+                userAnswer = selectedChoice.toLowerCase();
+                correctAnswers = [currentItem.answer.toLowerCase()];
+                expectedAnswerForReview = currentItem.answer;
+            }
+
+            let isCorrect = userAnswer && correctAnswers.includes(userAnswer);
+            let feedbackDelay = isCorrect ? 1500 : 2500;
+            blockItemCount++;
+
+            if (isCorrect) {
+                score++;
+                blockScore++;
+                feedbackElement.textContent = "Correct!";
+                feedbackElement.className = 'correct';
+                triggerAnimation();
+                 if (quizMode === 'sentence') {
+                    const choiceButtons = choicesContainer.querySelectorAll('.choice-button');
+                    choiceButtons.forEach(btn => {
+                        if (btn.textContent.toLowerCase() === userAnswer) {
+                            btn.classList.add('selected-correct');
+                        }
+                    });
+                }
+            } else {
+                incorrectAnswers.push(expectedAnswerForReview);
+                let correctAnswerText = (quizMode === 'vocabulary' && Array.isArray(currentItem.english))
+                    ? currentItem.english.join(' / ')
+                    : expectedAnswerForReview;
+                feedbackElement.innerHTML = `Incorrect. Correct: <strong>${correctAnswerText}</strong>`;
+                feedbackElement.className = 'incorrect';
+                 if (quizMode === 'sentence') {
+                    const choiceButtons = choicesContainer.querySelectorAll('.choice-button');
+                    choiceButtons.forEach(btn => {
+                        if (btn.textContent.toLowerCase() === userAnswer) {
+                            btn.classList.add('selected-incorrect');
+                        }
+                        if (btn.textContent.toLowerCase() === correctAnswers[0]) {
+                             if (!isCorrect) btn.classList.add('reveal-correct');
+                        }
+                    });
+                }
+            }
+
+            const isLastItemOverall = currentItemIndex + 1 === currentQuizData.length;
+            const isEndOfBlock = (blockItemCount === blockSize) || isLastItemOverall;
+
+            setTimeout(() => {
+                if (isEndOfBlock) {
+                    showBlockSummary(blockScore, blockItemCount, isLastItemOverall);
+                    blockScore = 0;
+                    blockItemCount = 0;
+                } else {
+                    currentItemIndex++;
+                    displayItem();
+                }
+            }, feedbackDelay);
+        }
+
+        function showBlockSummary(correctInBlock, itemsInBlock, isLastItemOverall) {
+            const blockMessage = isLastItemOverall ? "Final Block Complete!" : "Block Complete!";
+            feedbackElement.innerHTML = `${blockMessage} <br> You got ${correctInBlock} out of ${itemsInBlock} correct.`;
+            feedbackElement.className = 'summary';
+
+            const summaryDelay = 3000;
+            setTimeout(() => {
+                currentItemIndex++;
+                if (isLastItemOverall) {
+                    showFinalScore();
+                } else {
+                    displayItem();
+                }
+            }, summaryDelay);
+        }
+
+         function triggerAnimation() {
+            animationContainer.style.opacity = '1';
+            animationContainer.classList.add('animate-cheer');
+            setTimeout(() => {
+                 animationContainer.classList.remove('animate-cheer');
+                 animationContainer.style.opacity = '0';
+            }, 1000);
+        }
+
+        function showFinalScore() {
+            promptDisplayElement.textContent = "Quiz Finished!";
+            progressElement.textContent = '';
+            choicesContainer.innerHTML = '';
+
+            let finalMessageHTML = `<span class="final-score-text">Overall Score: ${score} out of ${currentQuizData.length}</span>`;
+
+            if (incorrectAnswers.length > 0) {
+                finalMessageHTML += `<div class="incorrect-list-title">Words/Answers to Review:</div>`;
+                finalMessageHTML += `<ul class="incorrect-list">`;
+                const uniqueIncorrectAnswers = [...new Set(incorrectAnswers)];
+                uniqueIncorrectAnswers.forEach(answer => {
+                    finalMessageHTML += `<li>${answer}</li>`;
+                });
+                finalMessageHTML += `</ul>`;
+            } else {
+                 finalMessageHTML += `<div style="text-align:center; margin-top: 15px; color: green;">Perfect score! No items to review.</div>`;
+            }
+
+            feedbackElement.innerHTML = finalMessageHTML;
+            feedbackElement.className = '';
+
+            englishInputElement.style.display = 'none';
+            submitButton.style.display = 'none';
+            englishInputElement.disabled = true;
+            submitButton.disabled = true;
+            englishInputElement.value = '';
+            englishInputElement.placeholder = 'Finished!';
+        }
+        // --- Initialization ---
+        // Event listeners for mode selection buttons are set via inline onclick.
+        // Other event listeners (submit, input, choices) are managed within startQuiz/displayItem.
+    </script>
+</body>
+</html>

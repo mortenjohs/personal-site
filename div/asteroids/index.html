@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar System Asteroid Belts Visualizer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Canvas Viewport -->
+    <canvas id="orbit-canvas"></canvas>
+
+    <!-- Top Overlay HUD -->
+    <header class="hud-top">
+      <div class="brand">
+        <span class="icon">🪐</span>
+        <div class="titles">
+          <h1>SOLAR SYSTEM ASTEROID VISUALIZER</h1>
+          <p>Overhead Ecliptic View • Orbital Mechanics Engine</p>
+        </div>
+      </div>
+      <div class="time-hud">
+        <div class="label">SIMULATED DATE</div>
+        <div id="hud-date-display">2026-07-24</div>
+        <div id="hud-time-details">T+0.0 Days • Year 2026.56</div>
+      </div>
+    </header>
+
+    <!-- Left Control Panel -->
+    <aside class="control-panel">
+      <div class="panel-section">
+        <h3><span class="sec-icon">🎯</span> Select & Track Trail</h3>
+        <div class="search-box">
+          <input type="text" id="input-search-body" placeholder="Search body (e.g. Ceres, Earth)..." autocomplete="off">
+          <div id="search-results" class="search-dropdown hidden"></div>
+        </div>
+        <div class="trail-options">
+          <div class="slider-row">
+            <span class="slider-label">Trail Length: <span id="trail-len-val" class="val-tag">1000 pts</span></span>
+            <input type="range" id="slider-trail-length" min="50" max="3000" step="50" value="1000">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3><span class="sec-icon">🔭</span> View Presets</h3>
+        <div class="button-group">
+          <button class="btn-preset active" data-preset="full">Full System (55 AU)</button>
+          <button class="btn-preset" data-preset="inner">Inner System (6 AU)</button>
+          <button class="btn-preset" data-preset="outer">Outer System (35 AU)</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3><span class="sec-icon">🔄</span> Reference Frame</h3>
+        <div class="ref-frame-group">
+          <div class="select-box-wrapper">
+            <label for="select-center-ref" class="select-label">Center Reference:</label>
+            <select id="select-center-ref" class="custom-select">
+              <option value="Sol" selected>Sol (Sun)</option>
+              <option value="Mercury">Mercury</option>
+              <option value="Venus">Venus</option>
+              <option value="Earth">Earth</option>
+              <option value="Mars">Mars</option>
+              <option value="Jupiter">Jupiter</option>
+              <option value="Saturn">Saturn</option>
+              <option value="Uranus">Uranus</option>
+              <option value="Neptune">Neptune</option>
+            </select>
+          </div>
+          <div class="select-box-wrapper">
+            <label for="select-co-ref" class="select-label">Co-Reference (Rotation):</label>
+            <select id="select-co-ref" class="custom-select">
+              <option value="Sol" selected>Sol (Sun)</option>
+              <option value="Mercury">Mercury</option>
+              <option value="Venus">Venus</option>
+              <option value="Earth">Earth</option>
+              <option value="Mars">Mars</option>
+              <option value="Jupiter">Jupiter (Trojans & Hildas)</option>
+              <option value="Saturn">Saturn</option>
+              <option value="Uranus">Uranus</option>
+              <option value="Neptune">Neptune (Trojans)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3><span class="sec-icon">🎨</span> Asteroid Appearance</h3>
+        <div class="slider-control-group">
+          <div class="slider-row">
+            <span class="slider-label">Size: <span id="size-val" class="val-tag">1.4 px</span></span>
+            <input type="range" id="slider-asteroid-size" min="0.5" max="6.0" step="0.1" value="1.4">
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Opacity: <span id="opacity-val" class="val-tag">70%</span></span>
+            <input type="range" id="slider-asteroid-opacity" min="10" max="100" step="5" value="70">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3><span class="sec-icon">☄️</span> Asteroid Swarms</h3>
+        <div id="population-filters" class="filters-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3><span class="sec-icon">🎥</span> Video Export & Actions</h3>
+        <button id="btn-record" class="btn-primary glow-btn">
+          <span class="rec-dot"></span> Record Video (WebM/MP4)
+        </button>
+        <button id="btn-reset-cam" class="btn-secondary">Reset Camera</button>
+      </div>
+    </aside>
+
+    <!-- Right Side Info Box -->
+    <div id="info-box" class="info-card hidden">
+      <div class="info-header">
+        <h4 id="info-name">Body Name</h4>
+        <button id="info-close">&times;</button>
+      </div>
+      <div class="info-body">
+        <div class="info-row"><span class="lbl">Type:</span> <span id="info-type" class="val">-</span></div>
+        <div class="info-row"><span class="lbl">Semi-Major Axis (a):</span> <span id="info-a" class="val">- AU</span></div>
+        <div class="info-row"><span class="lbl">Eccentricity (e):</span> <span id="info-e" class="val">-</span></div>
+        <div class="info-row"><span class="lbl">Inclination (i):</span> <span id="info-i" class="val">-°</span></div>
+        <div class="info-row"><span class="lbl">Orbital Period (P):</span> <span id="info-period" class="val">- yrs</span></div>
+      </div>
+    </div>
+
+    <!-- Bottom Timeline Bar -->
+    <footer class="timeline-bar">
+      <div class="controls-row">
+        <button id="btn-play-pause" class="btn-icon">⏸</button>
+        <button id="btn-step-back" class="btn-icon">⏮</button>
+        <button id="btn-step-fwd" class="btn-icon">⏭</button>
+
+        <div class="slider-container flex-1">
+          <input type="range" id="timeline-slider" min="2000" max="2200" step="0.1" value="2026.56">
+        </div>
+
+        <div class="speed-control">
+          <span class="speed-lbl">Speed:</span>
+          <input type="range" id="speed-slider" min="1" max="3650" value="365">
+          <span id="speed-val">1.0 yr/s</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

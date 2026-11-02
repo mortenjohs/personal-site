@@ -1,0 +1,62 @@
+{
+	"datasets": [
+		{
+			"title":			"HDI 2012",
+			"source":			"WHO",
+			"url": 				"./data/hdi_and_components.tsv",
+			"showMin": 			false,
+			"showMax": 			false,
+			"setQuantiles": 	true,
+			"showGraticule":	false,
+			"showSea":			false,
+			"projection":		"Eckert III",
+			"colourScheme": 	"PuBu",
+			"numberOfColours": 	4,
+			"borderColor":		"rgba(100,100,100,1)"
+		},
+		{
+			"title":			"Meat Consumption",
+			"source":			"Not sure...",
+			"url": 				"./data/meat.tsv",
+			"showMin": 			true,
+			"showMax": 			true,
+			"setQuantiles": 	false,
+			"showGraticule":	true,
+			"showSea":			true,
+			"colourScheme": 	"YlOrRd",
+			"numberOfColours": 	9,
+			"borderColor":		"black"
+		}, 
+		{
+			"title":			"Alcohol Consumption",
+			"source":			"WHO",
+			"url": 				"./data/alcohol_2011.tsv",
+			"showMin": 			false,
+			"showMax": 			false,
+			"showGraticule":	false,
+			"setQuantiles": 	true,
+			"showSea":			true,
+			"seaColor":			"#E6EFF4",
+			"colourScheme": 	"Economist",
+			"numberOfColours": 	6,
+			"borderColor":		"#9F897D",
+			"projection":		"Larrivée",
+			"undefinedColor":	"#fff",
+			"domainOverride":	"0,2.5,5,7.5,10,12.5,50"
+		}, 
+		{
+			"title":			"WHO Regions",
+			"source":			"WHO",
+			"url": 				"./data/who_regions.csv",
+			"showMin": 			false,
+			"showMax": 			false,
+			"showGraticule":	true,
+			"setQuantiles": 	true,
+			"showSea":			false,
+			"categorical":		true,
+			"colourScheme": 	"Set3",
+			"numberOfColours": 	7,
+			"borderColor":		"rgba(100,100,100,1)"
+		}
+	]
+}

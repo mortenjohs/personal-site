@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Days Until/Since Date</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a slightly nicer look */
+        body {
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+        }
+        /* Ensure consistent height for the result area */
+        #result {
+            min-height: 120px; /* Adjusted for potentially taller content */
+        }
+        /* Style for the readonly input */
+        #permalinkInput:read-only {
+            background-color: #f3f4f6; /* bg-gray-100 */
+            cursor: text;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center min-h-screen p-6">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+        <h1 class="text-2xl font-bold text-gray-700 mb-6">Date Difference Calculator</h1>
+
+        <div id="dateInputSection" class="mb-6">
+            <label for="dateInput" class="block text-lg font-medium text-gray-600 mb-2">Select a date:</label>
+            <input type="date" id="dateInput" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+        </div>
+
+        <div id="result" class="mt-6 p-4 bg-gray-50 rounded-lg flex flex-col items-center justify-center">
+            <p class="text-gray-500 text-lg">Please select a date or provide one in the URL.</p>
+        </div>
+
+        <div id="permalinkSection" class="mt-4 hidden">
+             <label for="permalinkInput" class="block text-sm font-medium text-gray-600 mb-1">Shareable Link:</label>
+             <input type="text" id="permalinkInput" readonly class="w-full p-2 border border-gray-300 rounded-lg shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+             <p class="text-xs text-gray-500 mt-1">Copy this link to share the result for this date.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get references to the elements
+        const dateInput = document.getElementById('dateInput');
+        const resultDiv = document.getElementById('result');
+        const dateInputSection = document.getElementById('dateInputSection');
+        const permalinkSection = document.getElementById('permalinkSection');
+        const permalinkInput = document.getElementById('permalinkInput');
+
+        // Function to validate YYYY-MM-DD format string
+        function isValidDateFormat(dateString) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+        }
+
+        // Function to generate and display permalink
+        function displayPermalink(dateStr) {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const permalinkUrl = `${baseUrl}?date=${dateStr}`;
+            permalinkInput.value = permalinkUrl;
+            permalinkSection.classList.remove('hidden');
+        }
+
+        // Function to hide permalink
+        function hidePermalink() {
+            permalinkSection.classList.add('hidden');
+            permalinkInput.value = '';
+        }
+
+        // Function to validate the date components and create a Date object
+        function parseAndValidateDate(dateString) {
+            if (!isValidDateFormat(dateString)) {
+                return { valid: false, error: 'Invalid date format. Use YYYY-MM-DD.', date: null };
+            }
+
+            const parts = dateString.split('-');
+            const year = parseInt(parts[0], 10);
+            const monthIndex = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+            const day = parseInt(parts[2], 10);
+
+            const selectedDate = new Date(year, monthIndex, day);
+
+            if (isNaN(selectedDate.getTime()) || selectedDate.getFullYear() !== year || selectedDate.getMonth() !== monthIndex || selectedDate.getDate() !== day) {
+                 return { valid: false, error: 'The selected date is invalid (e.g., February 30th).', date: null };
+            }
+
+            selectedDate.setHours(0, 0, 0, 0); // Normalize to local midnight
+            return { valid: true, error: null, date: selectedDate };
+        }
+
+
+        // Function to calculate and display the date difference
+        function calculateDateDifference() {
+            const selectedDateStr = dateInput.value;
+            const validationResult = parseAndValidateDate(selectedDateStr);
+
+            if (!validationResult.valid) {
+                hidePermalink();
+                resultDiv.innerHTML = `<p class="text-red-500 text-lg">${validationResult.error}</p>`;
+                return;
+            }
+
+            const selectedDate = validationResult.date;
+
+            // --- Date calculation logic ---
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const timeDiff = selectedDate.getTime() - today.getTime();
+            const dayDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+            const weekDiff = dayDiff / 7; // Calculate week difference
+
+            let message = '';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = selectedDate.toLocaleDateString(undefined, options);
+
+            // Determine if the date is in the future, past, or today
+            if (dayDiff > 0) {
+                const dayText = dayDiff !== 1 ? 's' : '';
+                const weekText = parseFloat(weekDiff.toFixed(1)) !== 1.0 && parseFloat(weekDiff.toFixed(1)) !== -1.0 ? 's' : '';
+                message = `
+                    <div>
+                        <span class="text-5xl font-bold text-green-600">${dayDiff}</span> day${dayText}
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-3xl font-semibold text-green-700">(${weekDiff.toFixed(1)} week${weekText})</span>
+                    </div>
+                    <div class="mt-2 text-xl text-gray-800">
+                        until ${formattedDate}
+                    </div>`;
+            } else if (dayDiff < 0) {
+                const daysSince = Math.abs(dayDiff);
+                const weeksSince = Math.abs(weekDiff);
+                const dayText = daysSince !== 1 ? 's' : '';
+                const weekText = parseFloat(weeksSince.toFixed(1)) !== 1.0 ? 's' : '';
+                 message = `
+                    <div>
+                        <span class="text-5xl font-bold text-red-600">${daysSince}</span> day${dayText}
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-3xl font-semibold text-red-700">(${weeksSince.toFixed(1)} week${weekText})</span>
+                    </div>
+                    <div class="mt-2 text-xl text-gray-800">
+                        since ${formattedDate}
+                    </div>`;
+            } else {
+                message = `<span class="text-5xl font-bold text-blue-600">Today is ${formattedDate}!</span>`;
+            }
+
+            resultDiv.innerHTML = message; // Update the result div
+            // --- End of date calculation logic ---
+
+            displayPermalink(selectedDateStr);
+        }
+
+        // --- Initialization Logic ---
+        function initializeApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get('date');
+            let validUrlDateFound = false;
+            let initialErrorMessage = null;
+
+            if (dateParam) {
+                const validationResult = parseAndValidateDate(dateParam);
+                if (validationResult.valid) {
+                     dateInput.value = dateParam;
+                     dateInputSection.style.display = 'none';
+                     validUrlDateFound = true;
+                     calculateDateDifference();
+                } else {
+                    initialErrorMessage = validationResult.error;
+                }
+            }
+
+            if (!validUrlDateFound) {
+                dateInputSection.style.display = 'block';
+                hidePermalink();
+
+                if (initialErrorMessage) {
+                    resultDiv.innerHTML = `<p class="text-red-500 text-lg">${initialErrorMessage}</p>`;
+                } else {
+                    resultDiv.innerHTML = '<p class="text-gray-500 text-lg">Please select a date above.</p>';
+                }
+                if (!dateParam || initialErrorMessage) {
+                    dateInput.value = '';
+                }
+            }
+        }
+
+        // Add event listener to the date input
+        dateInput.addEventListener('change', calculateDateDifference);
+
+        // Add click listener to the permalink input to select text on click
+        permalinkInput.addEventListener('click', () => {
+            permalinkInput.select();
+        });
+
+        // Initialize the app when the page loads
+        initializeApp();
+    </script>
+
+</body>
+</html>

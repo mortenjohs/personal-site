@@ -1,0 +1,43 @@
+#hover-text {
+  font-family: helvetica;
+  font-size: 0.8em;
+}
+
+#title {
+  font-family: helvetica;
+  text-align: center;
+  padding:0pt;
+  font-size: 1em;
+}
+
+#title small{
+  font-size: 0.7em;
+}
+
+div {
+  font-family: helvetica;
+  font-size: 10pt;
+}
+
+#maintable {
+  width: 960px;
+  height: 300px;
+}
+
+#messages {
+  background: lightpink;
+}
+
+#colors {
+  background: lightgreen;
+}
+
+#dataentry {
+  width: 95%;
+  height: 100%
+}
+
+#by {
+  font-size: 0.8em;
+  text-align: center;  
+}

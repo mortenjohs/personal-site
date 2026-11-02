@@ -1,0 +1,181 @@
+Changelog:
+----------
+
+55: Tue May 09 2017
+Map now follows WHO guidlines and rules. (Thanks to Frederic Lam for updated topojson.)
+
+54: Tue May 09 2017
+Automatic changelogs.
+
+53: Thu May 04 2017
+WHO Regions updated
+
+52: Fri Jul 04 2014
+Added an experimental feature to remove countries that are not in the dataset. (Thanks for the suggestion Monica.)
+Simplified the menu structure.
+
+51: Fri May 09 2014
+Improved projections.
+
+50: Mon Dec 02 2013
+Added link to changelog from welcome alert.
+
+49: Mon Dec 02 2013
+Added some keyboard shortcuts.
+Tidied some code.
+
+48: Tue Nov 26 2013
+Added ability to set the number of decimal points in legend.
+Various bug fixes.
+
+47: Fri Oct 11 2013
+Fixed a bug related to the No Data category where the lowest category would not show up.
+
+46: Fri Oct 11 2013
+No data category shown, if present.
+Category boxes shape changed.
+
+45: Mon Oct 07 2013
+Added a changelog.
+
+44: Mon Oct 07 2013
+Added a changelog.
+
+43: Mon Oct 07 2013
+Added a welcome frame - that, for now, propose a YouTube video.
+
+42: Mon Oct 07 2013
+Updated the list of Globocan countries.
+
+41: Mon Oct 07 2013
+You can now set the colour used for borders of countries without data.
+
+40: Mon Sep 30 2013
+Clear domain lock button added.
+
+39: Mon Sep 30 2013
+Added colorbrewer.js to the color select menus.
+Added datadomain override functionality.
+Added filter on "number of categories" for color schemes.
+Updated help.
+
+38: Mon Sep 30 2013
+Added domainOverride to the Alcohol dataset.
+
+37: Mon Sep 30 2013
+Removed several color schemes as they are also provided by colorbrewer.js.
+
+36: Wed Sep 25 2013
+Added some more detail on the alcohol dataset.
+
+35: Wed Sep 25 2013
+The TogetherJS script is loaded on demand.
+Changed the zoom level on a projection.
+
+34: Wed Sep 25 2013
+TogetherJS added as an experimental feature.
+
+33: Wed Sep 11 2013
+hgignore added
+
+32: Wed Sep 11 2013
+Improved handling of projections.
+
+31: Wed Sep 11 2013
+You can now set the colour used for countries without data.
+
+30: Wed Sep 11 2013
+Tidied some duplicate/wrong on-click functions.
+
+29: Wed Sep 11 2013
+Better handlign of categories shown/hidden.
+Projections added.
+
+28: Wed Sep 11 2013
+A bootstrap 3.0 test - gone wrong.
+
+27: Wed Sep 11 2013
+Added a dataset on browser usage.
+
+26: Wed Sep 11 2013
+Bootstrap 3.0 files added for the future.
+
+25: Wed Sep 11 2013
+Some refactoring. Added a way to click to hide/show categories.
+
+24: Wed Sep 11 2013
+Fixed an error with the border colour of downloaded SVGs.
+
+23: Wed Sep 11 2013
+Fixed an error with the background colour of downloaded SVGs.
+
+22: Wed Sep 11 2013
+Fixed an error in the header.
+
+21: Thu Sep 05 2013
+Added South Sudan to the Alcohol demo data.
+
+20: Thu Sep 05 2013
+Added South Sudan to the HDI demo data.
+
+19: Thu Sep 05 2013
+Fixed a PNG export related bug.
+
+18: Thu Sep 05 2013
+Fixed a bug related to quantized data.
+
+17: Thu Sep 05 2013
+Removed some unused data files.
+
+16: Thu Sep 05 2013
+Added meat dataset.
+
+15: Thu Sep 05 2013
+Commit dataset config file.
+
+14: Thu Sep 05 2013
+Categorical variables added.
+Other fixes.
+
+13: Thu Sep 05 2013
+WHO Regions dataset added to showcase categorical variable mapping.
+
+12: Thu Sep 05 2013
+Added a 7 colour qualitative color scheme.
+
+11: Thu Sep 05 2013
+Libraries added
+
+10: Thu Sep 05 2013
+Libraries added.
+
+9: Thu Sep 05 2013
+About box updated. Download PNG added. Slight menu restructure. h1 renamed to hover text.
+
+8: Thu Sep 05 2013
+Small cosmetic changes.
+
+7: Tue Sep 03 2013
+CSS added.
+
+6: Tue Sep 03 2013
+Redirect index.html added.
+
+5: Tue Sep 03 2013
+Many improvements.
+
+4: Tue Sep 03 2013
+The country match column can now be globocan_id or globocan_country name.
+
+3: Tue Sep 03 2013
+Added some color schemes.
+
+2: Tue Jul 23 2013
+Initial color schemes...
+
+1: Tue Jul 23 2013
+Initial data commit.
+
+0: Tue Jul 23 2013
+Initial commit
+

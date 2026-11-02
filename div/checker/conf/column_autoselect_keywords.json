@@ -1,0 +1,15 @@
+{
+    "RECORD_ID_COLUMN": ["recordid", "patientid", "regno", "id", "pat_id"],
+    "INCIDENCE_DATE_COLUMN": ["incid", "diag", "incdate", "date_of_diagnosis"],
+    "BIRTH_DATE_COLUMN": ["birth", "birthd", "dob", "date_of_birth"],
+    "DATE_OF_LAST_CONTACT_COLUMN":["dlc", "lastcontact", "last_contact", "datelast"],
+    "DATE_OF_DEATH_COLUMN":["dod", "deathdate", "date_death"],
+    "VITAL_STATUS_COLUMN":["vital", "status"],
+    "AGE_COLUMN":["age"],
+    "SEX_COLUMN":["sex"],
+    "TOPOGRAPHY_COLUMN":["topo", "top"],
+    "MORPHOLOGY_COLUMN":["morph", "mor"],
+    "BEHAVIOUR_COLUMN":["behav", "beh"],
+    "BASIS_DIAGNOSIS_COLUMN":["basis", "diag", "bas"],
+    "GRADE_COLUMN":["grade"]
+  }

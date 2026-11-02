@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<title>CodeGrid</title>
+	<head>
+		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+		<!-- Panelbear Analytics - We respect your privacy -->
+
+		<script async src=https://cdn.panelbear.com/analytics.js?site=ADipNVnZHsR ></script>
+
+		<script>
+
+		    window.panelbear = window.panelbear || function() { (window.panelbear.q = window.panelbear.q || []).push(arguments); };
+
+		    panelbear('config', { site: 'ADipNVnZHsR' });
+
+		</script>
+		<style type="text/css">
+			body {
+				font-family: sans-serif;
+			}
+			a {
+				text-decoration: none;
+				color: black;	
+			}
+			button {
+				font-size: 1em;
+			}
+			#grid {
+				display: grid; 
+				grid-gap: .875rem; 
+				grid-template-columns: repeat(auto-fill, minmax(160px, 5fr));
+			}
+			.box, .box, .box, .box, .box {
+				border: 1px solid;
+				rgb(232, 232, 232); 
+				border-radius: 4px; 
+				box-sizing: border-box; width: 100%; padding-top: 62.5%;
+				height: 100;
+				width: 150;
+			}
+			.info {
+				text-align: center;
+				font-size: 1.5em;
+			}
+			#permalink {
+				font-size: 1em;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="grid">
+			<div class = "info">
+				<div id = "starting_team"></div> 
+				<hr>
+				<div id = "random">
+					 <button onclick="randomize()">Randomize</button>
+				</div> 
+				<hr>
+				<div id = "variants"></div>
+			</div>
+		</div>
+		<br>
+		<div id = "permalink"></div>
+		<small>CC BY-NC-SA 2020 mortenjohs 
+			<!-- -- <a href='https://github.com/mortenjohs/CodeGrid'>source</a> -->
+		</small>
+		<script type="text/javascript">
+			const queryString = window.location.search;
+			const urlParams = new URLSearchParams(queryString);
+
+			const bignumber = Number.MAX_SAFE_INTEGER;
+
+			/**
+			 * http://stackoverflow.com/a/10997390/11236
+			 */
+			function updateURLParameter(url, param, paramVal){
+			    var newAdditionalURL = "";
+			    var tempArray = url.split("?");
+			    var baseURL = tempArray[0];
+			    var additionalURL = tempArray[1];
+			    var temp = "";
+			    if (additionalURL) {
+			        tempArray = additionalURL.split("&");
+			        for (var i=0; i<tempArray.length; i++){
+			            if(tempArray[i].split('=')[0] != param){
+			                newAdditionalURL += temp + tempArray[i];
+			                temp = "&";
+			            }
+			        }
+			    }
+
+			    var rows_txt = temp + "" + param + "=" + paramVal;
+			    return baseURL + "?" + newAdditionalURL + rows_txt;
+			}
+
+			function randomize(seed=undefined){
+				if (!seed) { seed = Math.floor(Math.random() * bignumber).toString(36); } 
+				window.location = updateURLParameter(window.location.toString(), "seed", seed);
+			}
+
+			var seed = urlParams.get('seed');
+			if (!seed) { randomize(); };
+
+			d3.select("#permalink").html("Link to this grid: <a href = '"+ window.location + "'>"+window.location+"</a>");   
+
+			var variants = ["images"];
+			if (urlParams.get('variant')=='images'){
+				variants = ["classic"];
+			};
+
+			d3.select("#variants").selectAll("a")
+				.data(variants)
+				.enter()
+				.append("a")
+					.attr("href", function(d) {return updateURLParameter(window.location.toString(), "variant", d) } )
+					.text(function(d) {return d; })
+			;
+
+   			random_algo = new Math.seedrandom(seed);
+			
+			// https://observablehq.com/@d3/d3-shuffle	
+			function popRandom(array, random_algo = Math.random ) {
+				const n = array.length;
+				if (!(n >= 1)) return;
+				const i = Math.floor(random_algo() * n);
+				const x = array[i];
+				array[i] = array[n - 1];
+				array.length = n - 1;
+				return x;
+			};
+   	
+			var columns = 5;
+			var rows = 5;
+			var assassins = { num: 1, col: "black"};
+			var agents = { num: 8, teams: ["red", "blue"]};
+
+			if (urlParams.get('variant') == 'images') {
+				rows = 4;
+				agents.num = 7;
+			} 
+
+			var neutrals = { 
+				num: (columns * rows) - agents.num * agents.teams.length - assassins.num - 1, 
+				col: "grey"
+			};
+
+			var bucket = [];
+
+			for (var i = 0; i < assassins.num; i++) {
+				bucket.push(assassins.col);
+			};
+
+			for (var i = 0; i < agents.num; i++) {
+				for(const t of agents.teams) {
+					bucket.push(t);
+				}
+			};
+
+			for (var i = 0; i < neutrals.num; i++) {
+				bucket.push(neutrals.col);
+			};
+
+			extra = popRandom(agents.teams, random_algo);
+
+			bucket.push(extra);
+			
+			d3.select("#grid")
+				.selectAll(".column")
+				.data( function() { return Array(columns).fill() ; })
+				.enter()
+				.append("div")
+					.attr("class", "column")
+					.lower()
+			;
+
+			d3.select("#grid").selectAll(".column")
+				.selectAll(".box")
+				.data( function() { return Array(rows).fill().map(x=>popRandom(bucket, random_algo));})
+				.enter()
+				.append("div")
+					.attr("class", "box")
+					.transition()
+					.styleTween("background", function(d) { return d3.interpolate("white", d)})
+					// .attr("style", function(d) { return "background:" + d; });
+					.duration(function(d,i) {return i * 500 + Math.random() * 250})
+			;
+
+			d3.select("#starting_team").html("<p>Starting team: "+ extra + "</p>").attr("style", "color: "+extra);
+
+			var place = window.location.toString();
+
+		</script>
+	</body>
+</html>

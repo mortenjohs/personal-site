@@ -1,0 +1,83 @@
+body {
+  background: #fcfcfa;
+}
+
+h1 {
+  font-family: helvetica;
+  font-size: 1em;
+}
+
+#title {
+  font-family: helvetica;
+  text-align: center;
+  padding:0pt;
+  font-size: 1em;
+}
+#title small{
+  font-size: 0.5em;
+}
+
+div {
+  font-family: helvetica;
+  font-size: 10pt;
+}
+
+#maintable {
+  width: 960px;
+  height: 300px;
+  -moz-box-shadow:    3px 3px 5px 6px #ccc;
+  -webkit-box-shadow: 3px 3px 5px 6px #ccc;
+  box-shadow:         3px 3px 5px 6px #ccc;
+}
+
+#help {
+  width: 130px;
+  height: 100%;
+  background: lightyellow;
+  font-size: 0.7em;
+
+  border: 1px solid #000;
+  padding: 15px;
+  text-align: justify;
+}
+
+#messages {
+  width: 160px;
+  height: 130px;
+  background: lightpink;
+  /*font-size: 0.7em;*/
+  border: 1px solid #000;
+  text-align: justify;
+}
+
+#colors {
+  width: 160px;
+  height: 200px;
+  background: lightgreen;
+  /*font-size: 0.7em;*/
+  border: 1px solid #000;
+  text-align: justify;
+}
+
+#actions {
+  /*font-size: 0.8em;*/
+}
+
+#dataentry {
+  width: 99%;
+  height: 99%;
+}
+
+#by {
+  font-size: 0.7em;
+  text-align: center;  
+}
+
+#colorselect {
+  width: 130px;
+  /*font-size: 7pt;*/
+}
+
+#dataselect {
+  /*font-size: 7pt;*/
+}

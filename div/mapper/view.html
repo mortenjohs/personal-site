@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<title>M³D³</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script src="./vendor/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="./vendor/bootstrap/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/mapper.css" type="text/css">
+    <link rel="stylesheet" href="./vendor/fontawesome/css/font-awesome.min.css">
+    <!-- <script src="https://togetherjs.com/togetherjs-min.js"></script> -->
+    <script src="./js/bootbox.min.js"></script>
+    <script src="./js/d3/d3.v3.min.js"></script>
+    <script src="./js/d3/d3.geo.projection.v0.min.js"></script>
+    <script src="./js/d3/topojson.v1.min.js"></script>
+    <script src="./js/d3/colorbrewer.js"></script>
+    <script src="./js/canvg/canvg.js"></script>
+    <script src="./js/canvg/rgbcolor.js"></script>
+    <script src="./js/canvg/StackBlur.js"></script>
+		<!-- Panelbear Analytics - We respect your privacy -->
+		<script async src=https://cdn.panelbear.com/analytics.js?site=ADipNVnZHsR ></script>
+		<script>
+		    window.panelbear = window.panelbear || function() { (window.panelbear.q = window.panelbear.q || []).push(arguments); };
+		    panelbear('config', { site: 'ADipNVnZHsR' });
+		</script>
+
+  </head>
+  <body style="padding-top: 50px;">
+
+	  <script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-75916446-1', 'auto');
+	  ga('send', 'pageview');
+
+	</script>
+  
+    <script type="text/javascript">
+    function about_alert() {
+      bootbox.alert("<div id=\"title\">M<sup>3</sup>D<sup>3</sup><br><small>Morten's Map Maker using Data Driven Documents</small></div><div id = \"by\">CC BY-SA Morten Ervik, <a href=\"mailto:ervikm@iarc.fr\">ervikm@iarc.fr</a></div><div id=\"reference\">Please reference M3D3 like so: Ervik M (2014). M3D3 [computer program]. Available from: https://bitly.com/mqubeddqubed<br><br></div><div id=\"thanks\">Thanks:<br /><ul><li>WHO for map file</li><li>Mike Bostock for D3</li><li>Twitter for Bootstrap</li></ul> Other libraries used: <br /><ul><li>canvg for svg to canvas</li><li>jQuery</li></ul></div>");
+    }
+	  function help_alert() {
+	  	bootbox.alert("<b>Instructions:</b><br>Paste your data into the <a role=\"button\" onclick=\"toggleDataDisplay()\"> box below</a>. (Accepted separators are: tabualtor, comma, semicolon, pipe, and @ (for now). (My little script should detect what you use.)) You need a column containing country codes called \"ISO_3_CODE\", \"ISO_2_CODE\", \"UN_CODE\", \"WHO_CODE\", \"country\", \"globocan_id\", or \"globocan_country\" to link your data to the map. Any other column will be regarded as data columns and you can chose from them using the drop down menu on the right. You can define the map colors (and number of groups) in the green box over to the right of the data box using any CSS color. (<a href=\"http://www.w3schools.com/cssref/css_colors_legal.asp\">More on legal ways to define colors</a>.) Using the same coding schemes you can define colours for border, the sea, and undefined areas.<br/ ><br/ >Use '|' (pipes) in the title to add line breaks. <br/ ><br/ >You can override the categories by entering comma separated numbers in the Domain override field. ");
+	  }
+    function welcome_alert() {
+      bootbox.alert("<h5>Welcome to Morten's Map Maker using Data Driven Documents</h5>I've recorded a tiny video demoing some of the tool's functionality - from looking at example datasets, to getting your own data in there. Enjoy, M.<center><iframe width=\"420\" height=\"315\" src=\"//www.youtube.com/embed/db4SgZzxqtk\" frameborder=\"0\" allowfullscreen></iframe><br />BTW, if you wonder what's new, check out the <a href=\"#\" onclick=\"changelog_alert()\">Changelog</a>...</center>");
+    }
+    function changelog_alert() {
+      $.get('changelog.txt', function(data){
+          bootbox.alert("<pre>" + data + "</pre>");
+      });
+    }
+
+ 	 </script>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+            <a class="brand" href="#" title = "Morten's Map Maker using Data Driven Documents">
+              M<sup>3</sup>D<sup>3</sup>
+            </a>
+
+            <ul class="nav">
+              <!-- <li><a href="/tool">Home</a></li> -->
+              <li class="dropdown">
+                <a href="#"
+                      class="dropdown-toggle"
+                      data-toggle="dropdown">
+                      Data
+                      <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">                    
+                    <li><a role="button" onclick="parseText()">Parse data</a></li>
+                    <li class="divider"></li>
+                    <li><a role="button" onclick="randomize()">Randomize</a></li>
+                    <li><a role="button" onclick="clearBox()">Clear</a></li>
+                    <li class="divider"></li>
+                    <li><a role="button" title="Show/hide the data entry part" onclick="toggleDataDisplay()">Toggle data display</a></li>                    
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#"
+                      class="dropdown-toggle"
+                      data-toggle="dropdown">
+                      Example Datasets
+                      <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu" id ="example-data">
+                    <li class="dropdown-submenu" id = "globocan-menu">
+                      <a href="#"
+                            class="dropdown"
+                            data-toggle="dropdown">
+                            Globocan 2012
+                      </a>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-submenu">
+                          <a href="#"
+                                class="dropdown"
+                                data-toggle="dropdown">
+                                Incidence
+                          </a>
+                          <ul class="dropdown-menu">
+                          </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                          <a href="#"
+                                class="dropdown"
+                                data-toggle="dropdown">
+                                Mortality
+                          </a>
+                          <ul class="dropdown-menu">
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#"
+                      class="dropdown-toggle"
+                      data-toggle="dropdown">
+                      Options
+                      <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a role="button" title="Click to toggle graticule on/off." onclick="toggleGraticule()">Toggle Graticule</a></li>
+                    <li><a role="button" title="Click to toggle sea on/off." onclick="toggleSea()">Toggle Sea</a></li>
+                    <li><a role="button" title="Click to toggle legend type." onclick="toggleLegend()">Toggle Legend</a></li>
+                    <li><a role="button" title="Click to toggle categories/not." onclick="toggleCategorized()">Toggle Categories</a></li>
+                    <li><a id="quant" title="Click to toggle scales. Quantilies (same number of countries in each group) or Quantize (each group has domain (max-min)/number of groups). Current type displayed.">Quantiles/<span class="muted">Quantized</span></li>
+                    <li class="divider"></li>
+                    <li><a role="button" title="Zoom out map to original view" onclick="resetView()">Reset View</a></li>
+                    <li><a role="button" title="Click to toggle experimental functionality." onclick="toggleExperimental()">Toggle Experimental Features</a></li>
+                </ul>
+              </li>
+<!--               <li></li> -->
+            </ul>
+
+          <ul class="nav navbar-nav pull-right">
+            <li>
+              <form class="navbar-form pull-right">
+                <a class="btn btn-warning experimental" id="download-png" href="#" style="visibility:hidden" title="Click to download the current map in Portable Network Graphics format. WARNING! Quite buggy as of now.">Download PNG</a>
+              </form>
+            </li>
+            <li class="divider">&nbsp;&nbsp;</li>
+            <li>
+              <form class="navbar-form pull-right">
+                <a class="btn btn-primary" id="download-svg" href="#" title="Click to download the current map in Scalable Vector Graphics format.">Download SVG</a>
+              </form>
+            </li>
+            <li class="dropdown">
+              <a href="#"
+                    class="dropdown-toggle"
+                    data-toggle="dropdown">
+                    ?
+                    <b class="caret"></b>
+              </a>
+              <ul class="dropdown-menu">
+                  <li><a role="button" onclick="help_alert()">Help</a></li>
+                  <li><a role="button" onclick="changelog_alert()">Changelog</a></li>
+                  <li><a role="button" onclick="about_alert()">About</a></li>
+              </ul>
+            </li>          
+          </ul>
+        </div>
+      </div>
+    </div>
+	<div class="container">
+    <table width="100%">
+      <tr>
+        <td width="50%">
+          <p id = "hover-text">...</p>
+        </td>
+        <td width="20%">
+          <div align="left" id = "dataselect" title ="Pick a data column."><small>Data column:</small><br> </div>
+        </td>
+        <td width="10%">
+          <div align="left" id = "categoreiesselect" title ="Set number of Categories."><small>No of Categories:</small><br> </div>
+        </td>
+        <td width="20%">
+          <div align="left" id = "colorselect" title ="Pick a ready made color scheme."><small>Color scheme:</small><br> </div>
+        </td>
+      </tr>
+    </table>
+<div id="chart">
+  <svg xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+      <style type="text/css" >
+      <![CDATA[
+
+        .stroke {
+          fill: none;
+          stroke: none;
+          stroke-width: 3px;
+        }
+
+        #sea {
+          /*fill: #a4bac7;*/
+          /*fill: none;*/
+        }
+
+        .graticule {
+          fill: none;
+          stroke: #777;
+          stroke-width: .5px;
+          stroke-opacity: .5
+        }
+
+        #countries {
+          /*stroke: #fff;*/
+          stroke-width: .5px;
+          fill: #aaa;
+          stroke-linejoin: round;
+          stroke-linecap: round;
+        }
+
+        #countries .active {
+          stroke: orange;
+        }
+
+        .borders {
+          fill: none;
+          stroke: #fff;
+          stroke-width: 1.5px;
+          stroke-linejoin: round;
+          stroke-linecap: round;
+          pointer-events: none;
+        }
+
+        #source {
+          font: 10px helvetica;
+        }
+
+        #made-with {
+          font: 7px helvetica;
+        }
+
+        #legend {
+          font: 10px helvetica;
+        }
+
+        #legend .box {
+          stroke: #000;
+          stroke-width: 1px;
+        }
+
+        #title-box .title {
+          font: 15px helvetica;
+        }
+
+        #title-box .variable-name {
+          font: 10px helvetica;
+        }
+
+      ]]>
+    </style>
+</svg>
+</div>
+<div align = "center"><a id = "herebedata"  class="btn btn-success btn-mini" onClick="toggleDataDisplay()" title = "Click to show/hide">Here be data</a>
+<br>
+<a class="btn experimental btn-warning btn-mini" onclick="javascript:( function(){ var s=document.createElement('script'); s.setAttribute('src','https://togetherjs.com/togetherjs-min.js'); document.getElementsByTagName('body')[0].appendChild(s); setTimeout(function(){ TogetherJS(this); }, 100); })(); return false;" style="visibility:hidden">Start/stop TogetherJS</a></div>
+<br>
+<br>
+<div id = "datadisplay" style="display: none">
+  <table id = "maintable">
+    <tr>
+      <td width="75%">
+        Title: <input id="title-field" name="" type="text"/>
+        <textarea id="dataentry" rows= 26 title"Databox - see the help box."></textarea><br>
+        Source: <input id="source-field" name="" type="text"/>
+      </td>
+      <td width="25%">
+          <a class="btn btn-info btn-large btn-block" onClick="parseText()" title="Click to grab the data from the text field to the left, parse it, and map it to the map."><i class="icon-ok-circle"></i> Parse data</a><br>
+          <div>Projection:<br>
+            <select id="projection-menu"></select>
+          </div>
+          <div id = "colors-div">Colors:<br>
+            <textarea id = "colors" rows= 11 title = "Define your colors here. Add/remove groups if you want."></textarea>
+          Sea color: <input id="sea-color-field" name="sea-color" onChange="updateSea()" />
+          Border color: <input id="border-color-field" name="border-color" onChange="updateBorder()" />
+          Undefined border color: <input id="undefined-border-color-field" name="udnefined-border-color" onChange="updateBorder()" />
+          Undefined color: <input id="undefined-color-field" name="undefined-color" onChange="updateColors()" />
+          Domain override: <input id="domain-override-field" name="domain-override" onChange="updateColors()" />          
+          <a id = "lockdomain"  class="btn btn-warning btn-mini" onClick="lockDomain()" title = "Click to lock domain">Lock</a>&nbsp;<a id = "cleardomain"  class="btn btn-danger btn-mini" onClick="clearDomain()" title = "Click to clear domain lock.">Clear lock</a></div>
+          <a id = "deletecountries"  class="btn btn-warning btn-mini experimental" onClick="deleteCountriesNotInDataset()" title = "Click to delete countries not in the dataset." style="visibility:hidden">Delete countries not in the dataset</a><br>
+          Decimal points in legend: <input id="decimal-points-field" name="decimal-points" onChange="addLegend()" value = "1" />
+          <div id = "messages-div">Messages:<br>
+            <textarea id = "messages" rows= 11 readonly="true" title = "(Error) messages will appear here.">
+            </textarea>
+          </div>
+      </td>
+    </tr>
+  </table>
+</div>
+<div id = "by">CC BY-SA Morten Ervik, <a href="mailto:ervikm@iarc.fr">ervikm@iarc.fr</a></div>
+<script language="javascript">
+
+welcome_alert();
+
+var globocanServerURL = "n/a";
+
+var width = 960,
+    height = 500,
+    centered,
+    countrydata,
+    colorcodes,
+    world,
+    color,
+    categoriesShown,
+    showGraticules = true,
+    showSea = false,
+    showMax = true,
+    showMin = true,
+    matchcol = "ISO_3_CODE"
+    valuecol = "value",
+    defaultSeaColor = "#a4bac7",
+    defaultBorderColor = "rgb(100,100,100)",
+    defaultUndefinedColor = "#ccc",
+    defaultUndefinedBorderColor = "white",
+    quantiles = true,
+    categorical = false,
+    colorSchemes = [], 
+    showUnknownLegend = false,
+    countriesNotFound = [],
+    whoMode = true,
+    notApplicableColor = "rgb(125, 125, 125)";
+
+//d3.scale.category20();
+
+d3.select("#sea-color-field")[0][0].value = defaultSeaColor;
+d3.select("#border-color-field")[0][0].value = defaultBorderColor;
+d3.select("#undefined-color-field")[0][0].value = defaultUndefinedColor;
+
+var projection = d3.geo.naturalEarth()
+    .scale(160)
+    .translate([width / 2, height / 2])
+    .precision(.1);
+    // projection = d3.geo.times()
+    // .scale(200)
+    // .translate([width / 2, height / 2])
+    // .precision(.1);
+
+var path = d3.geo.path()
+     .projection(projection);
+
+var graticule = d3.geo.graticule();
+
+var svg = d3.select("#chart svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("xmlns", "http://www.w3.org/2000/svg");
+
+var background = svg.append("rect")
+      .attr("height", height)
+      .attr("width", width)
+      .attr("fill", "none")
+      .attr("stroke", "none");
+
+var g = svg.append("g");
+
+// begin sphere
+
+g.append("defs").append("path")
+  .datum({type: "Sphere"})  
+  .attr("id", "sphere")
+  .attr("d", path);
+
+g.append("use")
+    .attr("class", "stroke")
+    .attr("xlink:href", "#sphere");
+
+g.append("use")
+    .attr("id", "sea")
+    .attr("xlink:href", "#sphere")
+    .attr("fill", defaultSeaColor)
+    .attr("fill-opacity", function(d) { if (showSea) {return 1.0; } else {return 0.0;}});
+//    .attr("fill", function(d) { if (showSea) {return "lightblue"; } else {return "none";}});
+
+// end sphere
+
+ g.append("path")
+     .datum(graticule)
+     .attr("class", "graticule")
+     .attr("d", path);
+
+
+// add the dataset menu
+d3.json("./data/datasets.json", function(error, datasets){
+  addDatasetsToMenu(datasets.datasets, d3.select("#example-data"));
+});
+
+//add the globocan menu
+// We only propose Globocan data to machines that have access to that...
+if (window.location.hostname == globocanServerURL) {
+  addGlobocanMenu(globocanServerURL);
+} else {
+  d3.select("#globocan-menu").remove();
+}
+
+var colorbrewerCategories = {
+  "Accent": "qualitative",
+  "Blues": "sequential",
+  "BrBG": "diverging",
+  "BuGn": "sequential",
+  "BuPu": "sequential",
+  "Dark2": "qualitative",
+  "GnBu": "sequential",
+  "Greens": "sequential",
+  "Greys": "sequential",
+  "OrRd": "sequential",
+  "Oranges": "sequential",
+  "PRGn": "diverging",
+  "Paired": "qualitative",
+  "Pastel1": "qualitative",
+  "Pastel2": "qualitative",
+  "PiYG": "diverging",
+  "PuBu": "sequential",
+  "PuBuGn": "sequential",
+  "PuOr": "diverging",
+  "PuRd": "sequential",
+  "Purples": "sequential",
+  "RdBu": "diverging",
+  "RdGy": "diverging",
+  "RdPu": "sequential",
+  "RdYlBu": "diverging",
+  "RdYlGn": "diverging",
+  "Reds": "sequential",
+  "Set1": "qualitative",
+  "Set2": "qualitative",
+  "Set3": "qualitative",
+  "Spectral": "diverging",
+  "YlGn": "sequential",
+  "YlGnBu": "sequential",
+  "YlOrBr": "sequential",
+  "YlOrRd": "sequential"
+}
+
+// add the map!
+d3.csv("./data/general_2011.csv", function(error, countrydata) {
+
+  d3.json("./data/color_schemes.json", function(error, cs) {
+    for(var key in colorbrewer) {
+      var value = colorbrewer[key];
+      for(var l in value){
+        var c = {};
+        c.title = key;
+        c.type = colorbrewerCategories[key];
+        c.data = colorbrewer[key][l];
+        cs.colors.push(c);
+      }
+    }
+
+    var numberOfCategories = [];
+
+    for(var i = 0; i < cs.colors.length; i++) {
+      var d = cs.colors[i];
+      if(numberOfCategories.indexOf(d.data.length) < 0 ){
+        numberOfCategories.push(d.data.length);
+      }
+    };
+
+    numberOfCategories = ["All"].concat(numberOfCategories.sort(function(a, b) {return a - b;}));
+
+    d3.select("#categoreiesselect").append("select")
+        .on("change", categorieschange)
+      .selectAll("option")
+        .data(numberOfCategories)
+      .enter().append("option")
+        .text(function(d){ return d+"";});
+
+    console.log(numberOfCategories);
+    colorcodes = cs.colors[0].data;
+
+    colorSchemes = cs.colors.sort(function(a, b){
+     var nameA=a.title.toLowerCase(), nameB=b.title.toLowerCase()
+     if (nameA < nameB) //sort string ascending
+      return -1 
+     if (nameA > nameB)
+      return 1
+     return 0 //default return value (no sorting)
+    });
+
+    d3.select("#colorselect").append("select")
+        .on("change", colorchange);
+
+    filterNumberOfCategories("All", colorSchemes);
+
+    d3.json("./js/world-general.topojson", function(error, world) {
+      var index;
+
+      for (index = 0; index < countrydata.length; ++index) {
+        world.objects.general.geometries[index].properties = countrydata[index];
+      }
+
+      g.append("g")
+          .attr("id", "countries")
+        .selectAll("path")
+          .data(topojson.feature(world, world.objects.general).features)
+        .enter().append("path")
+          .attr("d", path)
+          .attr("stroke",defaultBorderColor)
+          .on("click", clicked)
+          .on("mouseover", hover)
+          .on("mouseout", hoverout)
+          .append("title")
+            .classed("tooltip", true)
+            .text(function(d) { d.properties.ISO_3_CODE;});
+/*          .append("svg:title")
+          .text(function(d) { return d.properties.ISO_3_CODE; });*/
+
+      // add lines
+      g.append("g")
+          .attr('class','line') 
+          .attr("id", "lines")
+        .selectAll("path")
+          .data(topojson.feature(world, world.objects.maskline_general).features)
+        .enter().append("path")
+          .attr("d", path)
+          .style("stroke-width",0.5)
+          .style("fill","rgba(0,0,0,0)")
+          // .attr('class', function(d){ 
+          //     return 'poly' ;
+          // })
+          .attr("stroke",function(d){
+              if ( d.properties.COUNTRY == 'Jammu and Kashmir' )
+                  return "white" ; 
+              else if (d.properties.COUNTRY == "Border"){
+                  return defaultBorderColor;
+              }
+              return "white" ; 
+          })
+          .style('stroke-dasharray',function(d){
+              if ( d.properties.COUNTRY == 'Jammu and Kashmir' )
+                  return "1, 1" ; 
+              else if (d.properties.COUNTRY == "Border"){
+                  return "0";
+              }
+              return ".5, .5" ; 
+          })
+          .append("title")
+            .classed("tooltip", true)
+            .text(function(d) { d.properties.AREA;} );
+
+      // add lakes
+      g.append("g")
+          .attr("id", "lakes")
+        .selectAll("path")
+          .data(topojson.feature(world, world.objects.maskpoly_general).features)
+        .enter().append("path")
+          .attr("d", path)
+          .attr("stroke-width",0.5)
+          .style('fill',function(d){
+              if ( d.properties.AREA == 'Jammu and Kashmir')
+                  return notApplicableColor; 
+              else
+                  return "white" ; 
+          })
+          .attr("stroke",defaultBorderColor)
+          // .on("click", clicked)
+          // .on("mouseover", hover)
+          // .on("mouseout", hoverout)
+          .style('stroke-dasharray',function(d){
+              if ( d.properties.AREA == 'Jammu and Kashmir' )
+                  return "1, 1" ; 
+              else
+                  return "0" ; 
+          }) 
+          .append("title")
+            .classed("tooltip", true)
+            .text(function(d) { d.properties.AREA;});
+
+
+      d3.select("#colors")[0][0].value = colorcodes.join("\n");
+
+      fillWithRandom();
+
+      setColorSchemeByNameAndNumber("Original",5);
+
+      parseText();
+
+      addLegend();
+
+    });
+    
+  });
+
+});
+
+d3.select(self.frameElement).style("height", height + "px");
+
+d3.select("#download-svg").on("click", function(){
+  console.log(this);
+    d3.select(this)
+      .attr("href", 'data:application/octet-stream;base64,' + btoa(d3.select("#chart").html()))
+      .attr("download", "world.svg");
+});
+
+d3.select("#download-png").on("click", function(){
+  background
+    .attr("fill", "white");
+
+  console.log(this);
+    d3.select("body").append("canvas")
+      .attr("height", height)
+      .attr("width", width)
+      .attr("id","temp-canvas");
+    
+    canvas = document.getElementById("temp-canvas");
+
+    canvg(document.getElementById('temp-canvas'), '<svg>'+d3.select("#chart").html()+'</svg>');
+
+    d3.select(this)
+      .attr("href", canvas.toDataURL("image/png"))
+      .attr("download", "world.png");
+
+    d3.select("#temp-canvas").remove();
+//      document.write('<img src="'+canvas.toDataURL("image/png")+'"/>');
+    // window.location = canvas.toDataURL("image/png")
+  background
+    .attr("fill", "none");
+});
+
+// d3.select("#randomize").on("click", randomize);
+
+d3.select("#quant").on("click", function(d){
+  setQuantiles(!quantiles);
+  updateMap();
+});
+
+d3.select("#dataentry").on("change", function(d){
+  d3.select("#randomize")
+    .style("opacity",0.2)
+    .on("click", null);
+});
+
+// zoom and pan
+var zoom = d3.behavior.zoom()
+    .on("zoom",function() {
+        g.attr("transform","translate("+
+            d3.event.translate.join(",")+")scale("+d3.event.scale+")");
+        g.selectAll("circle")
+            .attr("d", path.projection(projection));
+        g.selectAll("path")
+            .attr("d", path.projection(projection));
+  });
+
+svg.call(zoom);
+
+$(document).keydown(function (event) {
+    switch (event.keyCode) {
+        case 107: // +
+            var val = parseInt(d3.select("#categoreiesselect select")[0][0].value);
+            if (val < 9) {
+                d3.select("#categoreiesselect select")[0][0].value = "" + (val + 1);
+                categorieschange();
+            }
+            break
+        case 109: // -
+            var val = parseInt(d3.select("#categoreiesselect select")[0][0].value);
+            if (val > 3) {
+                d3.select("#categoreiesselect select")[0][0].value = "" + (val - 1);
+                categorieschange();
+            }
+            break
+        // case 67: // c
+        //     var val = parseInt(d3.select("#colorselect select")[0][0].value);
+        //     d3.select("#colorselect select")[0][0].selectedIndex = (d3.select("#colorselect select")[0][0].selectedIndex + 1) % d3.select("#colorselect select")[0][0].length;
+        //     colorchange();
+        //     console.log(d3.select("#colorselect select")[0][0][d3.select("#colorselect select")[0][0].selectedIndex].__data__.title);
+        //     break
+        // case 88: // x
+        //     if (d3.select("#undefined-color-field")[0][0].value == "none") {
+        //         d3.select("#undefined-color-field")[0][0].value = defaultUndefinedColor;
+        //     } else {
+        //         d3.select("#undefined-color-field")[0][0].value = "none";
+        //     }
+        //     if (d3.select("#undefined-border-color-field")[0][0].value == "none") {
+        //         d3.select("#undefined-border-color-field")[0][0].value = defaultUndefinedBorderColor;
+        //     } else {
+        //         d3.select("#undefined-border-color-field")[0][0].value = "none";
+        //     }
+        //     updateColors();
+        //     break
+        // case 81: // q
+        //     setQuantiles(!quantiles);
+        //     toggleLegend();
+        //     updateMap();
+        //     break
+        // case 71: // g
+        //     toggleGraticule();
+        //     break
+        // case 76: // l
+        //     if (d3.select("#domain-override-field")[0][0].value.length > 0) {
+        //         clearDomain();
+        //     } else {
+        //         lockDomain();
+        //     }
+        //     break;
+    }
+});
+
+
+// projections
+var projectionOptions = [
+  { name: "Aitoff", projection: d3.geo.aitoff() },
+  { name: "Albers", projection: d3.geo.albers().scale(145).parallels([20, 50]) },
+  { name: "August", projection: d3.geo.august().scale(60) },
+  { name: "Azimuthal Equidistant", projection: d3.geo.azimuthalEquidistant(100) },
+  { name: "Baker", projection: d3.geo.baker().scale(100) },
+  { name: "Boggs", projection: d3.geo.boggs() },
+  { name: "Bonne", projection: d3.geo.bonne().scale(120) },
+  { name: "Bromley", projection: d3.geo.bromley() },
+  { name: "Collignon", projection: d3.geo.collignon().scale(93) },
+  { name: "Craster Parabolic", projection: d3.geo.craster() },
+  { name: "Eckert I", projection: d3.geo.eckert1().scale(165) },
+  { name: "Eckert II", projection: d3.geo.eckert2().scale(165) },
+  { name: "Eckert III", projection: d3.geo.eckert3().scale(180) },
+  { name: "Eckert IV", projection: d3.geo.eckert4().scale(180) },
+  { name: "Eckert V", projection: d3.geo.eckert5().scale(170) },
+  { name: "Eckert VI", projection: d3.geo.eckert6().scale(170) },
+  { name: "Eisenlohr", projection: d3.geo.eisenlohr().scale(60) },
+  { name: "Equirectangular (Plate Carrée)", projection: d3.geo.equirectangular() },
+  { name: "Hammer", projection: d3.geo.hammer().scale(165) },
+  { name: "Hill", projection: d3.geo.hill() },
+  { name: "Goode Homolosine", projection: d3.geo.homolosine() },
+  { name: "Kavrayskiy VII", projection: d3.geo.kavrayskiy7() },
+  { name: "Lambert cylindrical equal-area", projection: d3.geo.cylindricalEqualArea() },
+  { name: "Lagrange", projection: d3.geo.lagrange().scale(120) },
+  { name: "Larrivée", projection: d3.geo.larrivee().scale(120) }, //95
+  { name: "Laskowski", projection: d3.geo.laskowski().scale(120) },
+  { name: "Loximuthal", projection: d3.geo.loximuthal() },
+  { name: "Mercator", projection: d3.geo.mercator().scale(490 / 2 / Math.PI) },
+  { name: "Miller", projection: d3.geo.miller().scale(100) },
+  { name: "McBryde–Thomas Flat-Polar Parabolic", projection: d3.geo.mtFlatPolarParabolic() },
+  { name: "McBryde–Thomas Flat-Polar Quartic", projection: d3.geo.mtFlatPolarQuartic() },
+  { name: "McBryde–Thomas Flat-Polar Sinusoidal", projection: d3.geo.mtFlatPolarSinusoidal() },
+  { name: "Mollweide", projection: d3.geo.mollweide().scale(165) },
+  { name: "Natural Earth", projection: d3.geo.naturalEarth() },
+  { name: "Nell–Hammer", projection: d3.geo.nellHammer() },
+  { name: "Polyconic", projection: d3.geo.polyconic().scale(100) },
+  { name: "Robinson", projection: d3.geo.robinson() },
+  { name: "Sinusoidal", projection: d3.geo.sinusoidal() },
+  { name: "Sinu-Mollweide", projection: d3.geo.sinuMollweide() },
+  { name: "van der Grinten", projection: d3.geo.vanDerGrinten().scale(75) },
+  { name: "van der Grinten IV", projection: d3.geo.vanDerGrinten4().scale(120) },
+  { name: "Wagner IV", projection: d3.geo.wagner4() },
+  { name: "Wagner VI", projection: d3.geo.wagner6() },
+  { name: "Wagner VII", projection: d3.geo.wagner7() },
+  { name: "Winkel Tripel", projection: d3.geo.winkel3() }
+];
+
+projectionOptions.forEach(function(o) {
+  o.projection.rotate([0, 0]).center([0, 0]);
+});
+
+var projectionMenu = d3.select("#projection-menu")
+    .on("change", projectionChange);
+
+projectionMenu.selectAll("option")
+    .data(projectionOptions)
+  .enter().append("option")
+    .attr("value", function(d) { return d.name; })
+    .text(function(d) { return d.name; });
+
+projectionMenu[0][0].value = "Natural Earth";
+
+function projectionChange() {
+  updateProjection(projectionOptions[this.selectedIndex]);
+}
+
+function updateProjection(option) {
+  svg.selectAll("path").transition()
+      .duration(750)
+      .attrTween("d", projectionTween(projection, projection = option.projection));
+}
+
+function projectionTween(projection0, projection1) {
+  return function(d) {
+    var t = 0;
+
+    var projection = d3.geo.projection(project)
+        .scale(1)
+        .translate([width / 2, height / 2]);
+
+    path = d3.geo.path()
+        .projection(projection);
+
+    function project(λ, φ) {
+      λ *= 180 / Math.PI, φ *= 180 / Math.PI;
+      var p0 = projection0([λ, φ]), p1 = projection1([λ, φ]);
+      return [(1 - t) * p0[0] + t * p1[0], (1 - t) * -p0[1] + t * -p1[1]];
+    }
+
+    return function(_) {
+      t = _;
+      return path(d);
+    };
+  };
+}
+
+// Functions
+
+function colorchange(d){
+  colorcodes = d3.select("#colorselect select")[0][0][d3.select("#colorselect select")[0][0].selectedIndex].__data__.data;
+  d3.select("#colors")[0][0].value = colorcodes.join("\n");
+  updateMap();
+}
+
+function datacolumnchange(d){
+  valuecol = this.options[this.selectedIndex].value;
+  updateColors();
+  addLegend();
+}
+
+function fillWithRandom(d){
+      var paths = d3.select("#countries")
+        .selectAll("path")[0];
+      var text_field = matchcol + "|" + "Random number|Another Random number\n";
+      for (var index = 0; index < paths.length; ++index) {
+        text_field += paths[index].__data__.properties[matchcol] + "|" + Math.random() + "|" + Math.random() +"\n";
+      }
+      d3.select("#dataentry")[0][0].value = text_field;
+      d3.select("#title-field")[0][0].value="Random";
+      d3.select("#source-field")[0][0].value="JavaScript Random Number Generator";
+}
+
+function addLegend(d){
+
+  d3.select("#legend").remove();
+  d3.select("#title-box").remove();
+
+  var legend_min_x = 50;
+  var legend_min_y = 2*height/3;
+  var legend_max_y = height - 50;
+  var fontSize = 16;
+  var boxWidth = 20;
+  var boxHeight = 10;
+  var lineDistance = 25;
+  var adjust = 1;
+
+  var legend = svg.append("g")
+    .attr("id", "legend")
+    .attr("x", legend_min_x)
+    .attr("y", legend_min_y)
+    .attr("height", 100)
+    .attr("width", 100);
+
+  if (showUnknownLegend) {
+    var ug = legend.append("g");
+    ug.append("rect")
+        .attr("class", "box")
+        .attr("x", legend_min_x)
+        .attr("y", legend_max_y - lineDistance)
+        .attr("width", boxWidth)
+        .attr("height", boxHeight)
+        .style("stroke", d3.select("#undefined-border-color-field")[0][0].value)
+        .style("fill", d3.select("#undefined-color-field")[0][0].value);
+
+    ug.append("text")
+        .attr("x", legend_min_x + boxWidth * 1.5)
+        .attr("y", legend_max_y - (lineDistance - fontSize/2))
+        .attr("height",30)
+        .attr("width",100)
+        // .style("fill", color.range()[i])
+        .text("No Data");
+    adjust = 2;
+  }
+
+  legend.selectAll('g #data_categories').data(color.range())
+    .enter()
+    .append('g')
+    .each(function(d, i) {
+      var g = d3.select(this);
+      g.append("rect")
+        .attr("class", "box")
+        .attr("x", legend_min_x)
+        .attr("y", legend_max_y - (i + adjust) * lineDistance)
+        .attr("width", boxWidth)
+        .attr("height", boxHeight)
+        .style("stroke", d3.select("#border-color-field")[0][0].value)
+        .style("fill", color.range()[i]);
+
+      g.append("text")
+        .attr("x", legend_min_x + boxWidth * 1.5)
+        .attr("y", legend_max_y - ((i + adjust) * lineDistance - fontSize/2))
+        .attr("height",30)
+        .attr("width",100)
+        // .style("fill", color.range()[i])
+        .text(function(d,j){
+          if (categorical){
+            return color.domain()[i];
+          } else {
+            var interval = color.invertExtent(color.range()[i]);
+            var decimals = parseInt(d3.select("#decimal-points-field")[0][0].value);
+            var text;
+            if (i==0 && !showMin){
+              text = "<"+interval[1].toFixed(decimals);
+            } else if (i==color.range().length-1 && !showMax){
+              text = interval[0].toFixed(decimals) + "+";
+            } else {
+              text = interval[0].toFixed(decimals) + "-" + interval[1].toFixed(decimals);
+            }
+            return text;
+          }
+        });
+        g.on("click", categoryClicked);
+    });
+
+    d3.select("#source").remove();
+    svg.append("text")
+      .attr("text-anchor","middle")
+      .attr("id", "source")
+      .attr("x", width/2)
+      .attr("y", height-13)
+      .attr("height", 10)
+      .attr("width", 10)
+      .text("Source: "+d3.select("#source-field")[0][0].value);
+    
+    d3.select("#made-with").remove();
+    var mw = svg.append("text")
+      .attr("text-anchor","middle")
+      .attr("id", "made-with")
+      .attr("x", width/2)
+      .attr("y", height-3)
+      .attr("height", 10)
+      .attr("width", 10);
+    mw.append("tspan").text("Map made with M")
+      .append("tspan").attr("baseline-shift", "super").text("3");
+    mw.append("tspan").text("D")
+      .append("tspan").attr("baseline-shift", "super").text("3");
+
+    legend.append("g").append("text")
+        .attr("x", legend_min_x)
+        .attr("y", legend_max_y - ((color.range().length + adjust) * lineDistance - fontSize/2))
+        .attr("height",30)
+        .attr("width",100)
+      .text(valuecol);
+
+    var titleBox = svg.append("g")
+      .attr("id", "title-box")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("height", 100)
+      .attr("width", 100);
+
+    var titleText = d3.select("#title-field")[0][0].value;
+    var titleArray = titleText.split("|");
+
+    titleBox.selectAll('g')
+      .data(titleArray)
+      .enter()
+      .append('g')
+      .each(function(d, i) {
+        var g = d3.select(this);
+        g.append("text")
+          .attr("x", legend_min_x )
+          .attr("y", lineDistance + (i * lineDistance - fontSize/2))
+          .attr("height",30)
+          .attr("width",100)
+          .attr("class", "title")
+          // .style("fill", color.range()[i])
+          .text(function(d,j){
+            return titleArray[i];
+          });
+      });
+
+    // titleBox.selectAll('g')
+    //   .append("text")
+    //     .attr("x", legend_min_x)
+    //     .attr("y", lineDistance + (titleArray.length * lineDistance - fontSize/2))
+    //     .attr("height",30)
+    //     .attr("width",100)
+    //     .attr("class", "variable-name")
+    //   .text(valuecol);
+  }
+
+function hover(d) {
+  if (centered == null) {
+    var name;
+    name = d.properties.country;
+      if (d.properties[valuecol]!=undefined) {
+        name = name + " (" +
+         // valuecol + ": " +
+         d.properties[valuecol] +")";
+      }
+      if (matchcol!="country") {
+        name = d.properties[matchcol] + " - " + name;
+      }
+    d3.select("#hover-text").text(name);
+  }
+}
+
+function hoverout(d) {
+  if (centered == null) {
+    d3.select("#hover-text").text("...");
+  }
+}
+
+function updateInfo(d) {
+  if (centered != null) {
+    var name;
+    name = centered.properties.country;
+      if (centered.properties[valuecol]!=undefined) {
+        name = name + " (" +
+         // valuecol + ": " +
+         centered.properties[valuecol] +")";
+      }
+      if (matchcol!="country") {
+        name = centered.properties[matchcol] + " - " + name;
+      }
+    d3.select("#hover-text").text(name);
+  }
+}
+
+function clicked(d) {
+  var x, y, k, name;
+  console.log(d);
+  if (d && centered !== d) {
+    var centroid = path.centroid(d);
+    x = centroid[0];
+    y = centroid[1];
+    k = 4;
+    centered = d;
+    name = d.properties.country;
+    if (d.properties[valuecol]!=undefined) {
+      name = name + " (" +
+        // valuecol+": " +
+        d.properties[valuecol] +")";
+    }
+    if (matchcol!="country") {
+      name = d.properties[matchcol] + " - " + name;
+    }
+  } else {
+    x = width / 2;
+    y = height / 2;
+    k = 1;
+    centered = null;
+    name = "...";
+  }
+
+  g.selectAll("path")
+      .classed("active", centered && function(d) { return d === centered; });
+
+  d3.select("#hover-text").text(name);
+}
+
+function categoryClicked(d) {
+  console.log(d);
+  var index = categoriesShown.indexOf(d);
+  if (index >= 0) {
+    if (categoriesShown.length == color.range().length) {
+      categoriesShown = [d];
+    } else {
+      categoriesShown.splice(index, 1);
+    }
+  } else {
+    categoriesShown.splice(0,0,d);
+  }
+  if (categoriesShown.length == 0) {
+    categoriesShown = color.range();
+  }
+  updateColors();
+}
+
+
+  function randomize(d) {
+    fillWithRandom();
+    parseText();
+  }
+
+  function clearBox(d) {
+    d3.select("#dataentry")[0][0].value = "";
+    parseText();
+  }
+
+  function setQuantiles(b) {
+    var qtext;
+    quantiles = b;
+    if(quantiles){
+      qtext = "Quantiles/<span class=\"muted\">Quantized</span>";
+    } else {
+      qtext = "<span class=\"muted\">Quantiles</span>/Quantized";
+    }
+    d3.select("#quant").html(qtext);
+    console.log(quantiles);
+  }
+
+  function parseText(d) {
+
+    var possibleMatchCols = [ "ISO_3_CODE", "ISO_2_CODE", "UN_CODE", "WHO_CODE", "country", "globocan_id", "globocan_country" ];
+    var possibleSeparators = [ "," , "\t" , "|" , ";" , "@" ];
+
+    matchcol = "ISO_3_CODE";
+
+    var datacolumns = [];
+
+    var dsv;
+    var newdata;
+    var cols;
+
+    countriesNotFound = [];
+
+    for(var i = 0; i < possibleSeparators.length; ++i) {
+      dsv = d3.dsv(possibleSeparators[i], "text/plain");
+      newdata = dsv.parse(d3.select("#dataentry")[0][0].value);
+      if (newdata==null || newdata.length<1){
+        newdata = [{matchcol:"", "value":""}];
+      }
+      cols = Object.keys(newdata[0]);
+      var number_of_cols = cols.length;
+      if (number_of_cols>1) {
+        var row = 1;
+        while(row<newdata.length && Object.keys(newdata[row]).length == number_of_cols) {
+          row++;
+        }
+        if(row == newdata.length) {
+          // console.log(possibleSeparators[i]);
+          break;
+        }
+      }
+    }
+
+    // find the matchcol
+    for(var i = 0; i < possibleMatchCols.length; ++i) {
+      if (newdata[0][possibleMatchCols[i]]!=undefined ) {
+        matchcol = possibleMatchCols[i];
+        break;
+      };
+    }
+
+    console.log(cols);
+    
+    //convert values to float
+    for (var i = 0; i < cols.length; i++){
+      if( cols[i] != matchcol ){
+        datacolumns.push(cols[i]);
+        for(var j = 0; j < newdata.length; ++j){
+          if (categorical) {
+            newdata[j][cols[i]] = newdata[j][cols[i]];
+          }            
+          else{
+            newdata[j][cols[i]] = parseFloat(newdata[j][cols[i]]);
+          }
+        }
+      }
+    }
+
+    console.log(datacolumns);
+
+    // see if the current valuecol is in the new dataset
+    var selector = d3.select("#dataselect select")[0][0];
+    if (selector!=null) {
+      valuecol = selector.options[selector.selectedIndex].value;
+    }
+    var foundCol = false;
+    for(var i = 0; i < datacolumns.length; ++i) {
+      foundCol = (datacolumns[i] == valuecol);
+      if (foundCol) {
+        break;
+      };
+    }
+    if (!foundCol) {
+      valuecol = datacolumns[0];
+    }
+
+    // add cols to datacol selector
+    d3.select("#dataselect select").remove();
+    d3.select("#dataselect").append("select")
+        .on("change", datacolumnchange)
+      .selectAll("option")
+        .data(datacolumns)
+      .enter().append("option")
+        .text(function(d){return d;});
+
+    d3.select("#dataselect select")[0][0].value = valuecol;
+
+    var paths = d3.select("#countries")
+        .selectAll("path")[0];
+
+    for (var index = 0; index < paths.length; ++index) {
+      var found = false;
+      for(var j = 0; j < newdata.length; ++j){
+        if (newdata[j] != null && newdata[j][matchcol] == paths[index].__data__.properties[matchcol]) {
+          for (var k=0; k < datacolumns.length; k++){
+            if (newdata[j][datacolumns[k]] != NaN) {
+              paths[index].__data__.properties[datacolumns[k]] = newdata[j][datacolumns[k]];
+            } else {
+              paths[index].__data__.properties[datacolumns[k]] = undefined;
+            }
+          }
+          newdata[j] = null;
+          found = true;
+          break;
+        } 
+      }
+      if (!found) {
+        console.log("No data for: " + paths[index].__data__.properties.ISO_3_CODE);
+        for (var k=0; k < datacolumns.length; k++){
+            paths[index].__data__.properties[datacolumns[k]] = undefined;
+        }
+        countriesNotFound.push(paths[index]);
+      }
+    }
+
+    var message = "";
+    //find the nonnulled newdata elements
+    for(var j = 0; j < newdata.length; ++j){
+      if (newdata[j] != null) {
+        console.log(newdata[j][matchcol] + " not found or duplicate.");
+        message += newdata[j][matchcol] + " not found or duplicate.\n";
+      }
+    }
+
+    d3.select("#messages").html(message);
+
+    updateMap();
+  };
+
+  function updateMap(){
+
+    if (categorical) {
+      color = d3.scale.ordinal();
+    }
+    else {
+      if (quantiles){
+        color = d3.scale.quantile();
+      } else {
+        color = d3.scale.quantize();
+      };
+    }
+
+    var newcolourcodes = d3.tsv.parseRows(d3.select("#colors")[0][0].value);
+    color.range(newcolourcodes.map(function(d){return d[0]}));
+    categoriesShown = color.range().filter(function(d) {return true;});
+
+    updateColors();
+
+    addLegend();
+
+    updateInfo();
+
+  }
+
+  function updateColors(){
+    var undefinedColor = d3.select("#undefined-color-field")[0][0].value;
+
+    var paths = d3.select("#countries")
+        .selectAll("path")[0];
+
+    var datadomain = paths.map( function(d) { return d.__data__.properties[valuecol]; });
+
+    var domainoverride = d3.select("#domain-override-field")[0][0].value;
+    if (domainoverride.length>0){
+      color.domain(JSON.parse("["+domainoverride+"]"));
+    } else {
+      if (categorical) {
+        color.domain(datadomain);
+      }
+      else {
+        if (quantiles){
+          color.domain(datadomain);
+        } else {
+          color.domain([
+            d3.min(datadomain),
+            d3.max(datadomain)
+          ]);
+        };
+      }
+    }
+    d3.select("#sea")
+      .attr("fill", d3.select("#sea-color-field")[0][0].value);
+
+    d3.select("#lakes")
+      .attr("fill", d3.select("#sea-color-field")[0][0].value);
+
+    showUnknownLegend = false;
+
+    d3.select("#countries")
+      .selectAll("path")
+      .transition()
+      .duration(1000)
+      // .delay(function(d,i){return 15*i;})
+      .style("fill", function(d) {
+        //Get data value
+        var value = d.properties[valuecol];
+        if (whoMode && d.id == 'ESH' || d.properties.country == 'Abyei' || d.properties.country == "Jammu and Kashmir" ){
+                return notApplicableColor ; 
+            }
+        if (value != undefined) {
+          //If value exists…
+          // return color(value);
+          var cat = color(value);
+          if (categoriesShown.indexOf(cat)>=0) {
+            return cat;
+          } else {
+            return undefinedColor;
+          }
+        } 
+        else {
+          //If value is undefined…
+          showUnknownLegend = true;
+          return undefinedColor;
+        }
+      }).attr("stroke", function(d) { 
+        var value = d.properties[valuecol];
+        if (d3.select("#undefined-border-color-field")[0][0].value.length < 1 || (d.properties[valuecol] != undefined && categoriesShown.indexOf(color(value))>=0)) {
+          return d3.select("#border-color-field")[0][0].value;
+        } else {
+          return d3.select("#undefined-border-color-field")[0][0].value; 
+        }})
+      .select("title")
+        .text(function(d) { 
+          return d.properties.ISO_3_CODE +": " + d.properties[valuecol]+"" 
+        });
+
+    if (categorical && (d3.set(datadomain).values().length > color.range().length)) {
+      alert("More categories in data than colors available. Reusing some...");
+    };
+  }
+
+  function populateWithExampleData(data_url) {
+    console.log(data_url);
+    clearBox();
+    d3.text(data_url, function(error, unparsed) {
+      d3.select("#dataentry")[0][0].value = unparsed;
+      parseText();
+    });
+  }
+
+  function populateWithDataSet(options) {
+    // console.log(options);
+
+    setColorSchemeByNameAndNumber(options.colourScheme, options.numberOfColours);
+
+    showMax = options.showMax || false;
+    showMin = options.showMin || false;
+    setQuantiles(options.setQuantiles  || false);
+    categorical = options.categorical || false;
+
+    showSea = options.showSea;
+    setSeaVisibility();
+
+    // a hack to set the graticule we want it
+    showGraticules = !options.showGraticule;
+    toggleGraticule();
+
+    d3.select("#title-field")[0][0].value  = options.title;
+    d3.select("#source-field")[0][0].value = options.source;
+
+    if (options.seaColor){
+      d3.select("#sea-color-field")[0][0].value  = options.seaColor;
+    } else {
+      d3.select("#sea-color-field")[0][0].value  = defaultSeaColor;
+    }
+
+    if (options.borderColor){
+       d3.select("#border-color-field")[0][0].value  = options.borderColor;
+    } else {
+      d3.select("#border-color-field")[0][0].value  = defaultBorderColor;
+    }
+
+    if (options.undefinedColor){
+       d3.select("#undefined-color-field")[0][0].value  = options.undefinedColor;
+    } else {
+      d3.select("#undefined-color-field")[0][0].value = defaultUndefinedColor;
+    }
+
+    if (options.domainOverride){
+      d3.select("#domain-override-field")[0][0].value  = options.domainOverride;
+    } else {
+      d3.select("#domain-override-field")[0][0].value  = "";
+    }
+
+    populateWithExampleData(options.url);
+
+    if (options.projection){
+      setProjectionByName(options.projection);
+    } else {
+      setProjectionByName("Natural Earth");
+    }
+  }
+
+  function setProjectionByName(name) {
+      for (var i = projectionOptions.length - 1; i >= 0; i--) {
+        if (projectionOptions[i].name == name) {
+          projectionMenu[0][0].selectedIndex = i;
+          updateProjection(projectionOptions[i]);
+          break;
+        }
+      };
+  }
+
+  function addDatasetsToMenu(datasets, menu) {
+    menu.selectAll("li")
+      .data(datasets)
+    .enter().append("li")
+      .append("a")
+      .attr("role", "button")
+      .on("click", function(d){ populateWithDataSet(d); })
+      .text( function(d){ return d.title} );
+  };
+
+  function createSubmenu(menuname, menu) {
+    submenu = menu.append("li")
+      .attr("class", "dropdown-submenu");
+    submenu.append("a")
+      .attr("href", "#")
+      .attr("class", "dropdown")
+      .attr("data-toggle", "dropdown")
+      .text(menuname);
+    submenu.append("ul")
+      .attr("class", "dropdown-menu");
+    return submenu;
+  }
+
+  function addGlobocanMenu(globocanServerURL, continent, area) {
+    var datasets = generateGlobocanOptions(globocanServerURL, continent, area);
+    var menus = d3.selectAll("#globocan-menu ul ul")[0];
+    addDatasetsToMenu(datasets[0], d3.select(menus[0]));
+    addDatasetsToMenu(datasets[1], d3.select(menus[1]));
+    var continents = ["Africa","South America", "North America", "Asia", "Europe", "Oceania"];
+    for (var cont = 0; cont < continents.length ; cont++) {
+      var contDatasets = generateGlobocanOptions(globocanServerURL, cont +1);
+      var incidenceMenu = createSubmenu(continents[cont], d3.select(menus[0]));
+      var mortalityMenu = createSubmenu(continents[cont], d3.select(menus[1]));
+      addDatasetsToMenu(contDatasets[0], incidenceMenu.select("ul"));
+      addDatasetsToMenu(contDatasets[1], mortalityMenu.select("ul"));
+    }
+  }
+
+  function generateGlobocanOptions(globocanServerURL, continent, area) {
+
+    var globocanDataset = {
+      0:[], 
+      1:[]
+    };
+
+    var globocanVariables = ["asr", "cum0_74", "total"];
+    var counter = 0; 
+
+    for(var type = 0; type <= 1; type++ ) {
+      for(var variable_id = 0; variable_id < globocanVariables.length; ++variable_id) {
+        for(var sex = 0; sex <= 2; ++sex ) {
+          dataset = {};
+          var url = "http://"+globocanServerURL+":4567/globocan/all_countries_all_sites_csv?";
+          var titleString = "Globocan 2012";
+          var variable = globocanVariables[variable_id];
+
+          dataset.setQuantiles = true;
+          dataset.categorical = false;
+          dataset.showSea = false;
+          dataset.showMin = false;
+          dataset.showMax = false;
+
+          if (type == 0) {
+            titleString += " Incidence";
+            dataset.colourScheme = "Reds";
+            dataset.numberOfColours = 5;
+          } else {
+            titleString += " Mortality";
+            dataset.colourScheme = "Blues";
+            dataset.numberOfColours = 5;
+          };
+
+          url += "type="+type;
+
+          titleString += " "  + variable.toUpperCase();
+          url += "&variable=" + variable;
+
+          if (sex == '0') {
+            titleString += " Both sexes";
+          } else if (sex == '1') {
+            titleString += " Men";
+          } else {
+            titleString += " Women";
+          }
+
+          url += "&sex="+sex;
+
+          if (continent) { 
+            titleString += " (C: "+continent+")";
+            url += "&continent="+continent;
+          }
+
+          if (area) {
+            titleString += " (A: "+area+")";
+            url += "&area="+area;
+          }
+
+          dataset.title  = titleString;
+          dataset.source = "IARC/WHO";
+          dataset.url    = url;
+
+          globocanDataset[type].push(dataset);
+        }
+      }
+    }
+    return globocanDataset;
+  }
+
+  function setColorSchemeByNameAndNumber(name, number){
+    d3.select("#categoreiesselect select")[0][0].value = number;
+
+    filterNumberOfCategories(number, colorSchemes);
+
+    var options = d3.selectAll("#colorselect select option")[0];
+
+    for (var index = 0; index<options.length; ++index){
+      var optiondata = options[index].__data__;
+      console.log(optiondata);
+      if (optiondata.title == name && optiondata.data.length == number){
+        colorcodes = optiondata.data;
+        console.log(optiondata);
+        d3.select("#colorselect select")[0][0].selectedIndex = index;
+        break;
+      }
+    }
+    d3.select("#colors")[0][0].value = colorcodes.join("\n");
+  }
+
+  function toggleGraticule(d) {
+    showGraticules = !showGraticules;
+    var opacity;
+    if (showGraticules) {opacity = 1} else {opacity = 0};
+    d3.select(".graticule").attr("opacity", opacity);
+  }
+
+  function toggleDataDisplay(d) {
+    var div = document.getElementById("datadisplay");
+    if (div.style.display == "block") {
+        div.style.display = "none";
+    }
+    else 
+    {
+        div.style.display = "block";
+    }
+  }
+  function toggleExperimental(d) {
+    if (document.getElementsByClassName("experimental")[0].style.visibility == "hidden") {
+      d3.selectAll(".experimental")
+        .style("visibility", "");
+    }
+    else {
+      d3.selectAll(".experimental")
+        .style("visibility", "hidden");
+    }
+  }
+  
+  function toggleSea(d) {
+    showSea = !showSea;
+    setSeaVisibility();
+  }
+
+  function setSeaVisibility() {
+    d3.select("#sphere")
+      .attr("fill-opacity", function(d) { if (showSea) {return 1.0; } else {return 0.0;}});
+  }
+
+  function updateSea(d) {
+    showSea = true;
+    setSeaVisibility();
+    updateColors();
+  }
+
+  function toggleLegend(d){
+    showMax = !showMax;
+    showMin = !showMin;
+    addLegend();
+  }
+
+  function toggleCategorized(d){
+    categorical = !categorical;
+    parseText();
+  }
+
+  function resetView(d){
+    x = width / 2;
+    y = height / 2;
+    k = 1;
+    centered = null;
+
+    g.selectAll("path")
+        .classed("active", centered && function(d) { return d === centered; });
+
+    g.transition()
+        .duration(750)
+        .attr("transform", 
+          "translate(" + width / 2 + "," + height / 2 + ")"+
+          "scale(" + k + ")"+
+          "translate(" + -x + "," + -y + ")")
+        .style("stroke-width", 1.5 / k + "px");
+  }
+
+  function updateBorder() {
+    updateMap();
+  }
+
+  function toggleHereBeDataButtonDisplay(d) {
+    var div = document.getElementById("herebedata");
+    if (div.style.display == "block") {
+        div.style.display = "none";
+    }
+    else 
+    {
+        div.style.display = "block";
+    }
+  }
+
+  function categorieschange(d) {
+    var n = parseInt(d3.select("#categoreiesselect select")[0][0].value);
+
+    var preSelected = d3.select("#colorselect").select("select")[0][0][d3.select("#colorselect").select("select")[0][0].selectedIndex];
+    var postSelectIndex = -1;
+
+    filterNumberOfCategories(n, colorSchemes);
+
+    var filteredOptions = d3.select("#colorselect").select("select")[0][0];
+
+    // try to reselect based on preselected
+    if (preSelected!=null){
+      var p = preSelected.__data__;
+      for(var i = 0;i<filteredOptions.length; i++){
+        console.log(filteredOptions[i]);
+        if(filteredOptions[i].__data__.title == p.title){
+          postSelectIndex = i;
+          d3.select("#colorselect").select("select")[0][0].selectedIndex = i;
+          break;
+        }
+    }};
+
+    colorcodes = d3.select("#colorselect").select("select")[0][0][d3.select("#colorselect").select("select")[0][0].selectedIndex].__data__.data;
+
+    d3.select("#colors")[0][0].value = colorcodes.join("\n");
+
+    updateMap();
+  }
+
+  function filterNumberOfCategories(number, colorSchemes){
+
+    var filteredSchemes = [];
+    
+    if (number!="All") {
+      for(var i = 0; i<colorSchemes.length;i++){
+        if(colorSchemes[i].data.length==number){
+          filteredSchemes.push(colorSchemes[i]);
+        }
+      }
+    } else {
+      filteredSchemes = colorSchemes;
+    }
+
+    d3.select("#colorselect").select("select").remove();
+
+    d3.select("#colorselect").append("select")
+        .on("change", colorchange)
+      .selectAll("option")
+        .data(filteredSchemes)
+      .enter().append("option")
+        .text(function(d){ return d["title"] + " ("+ d["type"]+"-" +d["data"].length + ")";});    
+  }
+
+  function lockDomain(d){
+    var t = JSON.stringify(color.domain());
+    t = t.substring(1, t.length-1);
+    d3.select("#domain-override-field")[0][0].value = t;
+  }
+
+  function clearDomain(d){
+    d3.select("#domain-override-field")[0][0].value = "";
+    updateMap();
+  }
+
+  function deleteCountriesNotInDataset(d) {
+    countriesNotFound.forEach(function(d) {d.remove();});
+  }
+
+</script>
+
+	</div>
+  </body>
+</html>

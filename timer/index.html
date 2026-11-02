@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<title>Timer</title>
+	<head>
+		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script> -->
+		<!-- Panelbear Analytics - We respect your privacy -->
+
+		<script async src=https://cdn.panelbear.com/analytics.js?site=ADipNVnZHsR ></script>
+
+		<script>
+
+		    window.panelbear = window.panelbear || function() { (window.panelbear.q = window.panelbear.q || []).push(arguments); };
+
+		    panelbear('config', { site: 'ADipNVnZHsR' });
+
+		</script>
+		<style type="text/css">
+			body {
+				font-family: sans-serif;
+			}
+			a {
+				text-decoration: none;
+				color: black;	
+			}
+			button {
+				font-size: 1em;
+			}
+			#grid {
+				display: grid; 
+				grid-gap: .875rem; 
+				grid-template-columns: repeat(auto-fill, minmax(160px, 5fr));
+			}
+			.box, .box, .box, .box, .box {
+				border: 1px solid;
+				rgb(232, 232, 232); 
+				border-radius: 4px; 
+				box-sizing: border-box; width: 100%; padding-top: 62.5%;
+				height: 100;
+				width: 150;
+			}
+			.info {
+				text-align: center;
+				font-size: 1em;
+			}
+			#timer {
+				font-size: 10em;
+			}
+			#permalink {
+				font-size: 1em;
+			}
+			#start {
+				font-size: 3em;
+			}
+			input {
+				font-size: 1em;
+				text-align:center;
+			}
+			input[type='number']::-webkit-inner-spin-button, 
+			input[type='number']::-webkit-outer-spin-button { 
+    			opacity: 1;
+			}
+		</style>
+	</head>
+	<body>
+			<div class = "info">
+				<!-- Time left: -->
+				<div id = "timer">99:99</div> 
+				<div id = "start">
+					<hr>
+					 Start a preset timer:<br>
+					 <button onclick="start(3)">Earl Grey (3)</button>
+					 <button onclick="start(5)">Tisane (5)</button>
+					 <button onclick="start(8)">Moka (8)</button>
+					 <br>
+					 <button onclick="start(1)">1</button>
+					 <button onclick="start(10)">10</button>
+					 <button onclick="start(20)">20</button>
+					 <button onclick="start(60)">60</button>
+					 <button onclick="start(120)">120</button>
+					 <hr>
+					 Start a custom timer:<br>
+					 <input type="number" id="box" name="number" value=8><br>
+					 <button onclick="start()">Start</button>
+					<hr>
+				</div> 
+			</div>
+		<br>
+		<div id = "footer">
+			<div id = "permalink"></div>
+			<small>CC BY-NC-SA 2022 mortenjohs 
+			<!-- -- <a href='https://github.com/mortenjohs/Timer'>source</a> -->
+			</small>
+		</div>
+		<script type="text/javascript">
+			const queryString = window.location.search;
+			const urlParams = new URLSearchParams(queryString);
+
+			function updateURLParameter(url, params, paramVals){
+			    var newAdditionalURL = "";
+			    var tempArray = url.split("?");
+			    var baseURL = tempArray[0];
+			    var additionalURL = tempArray[1];
+			    var temp = "";
+			    if (additionalURL) {
+			        tempArray = additionalURL.split("&");
+			        for (var i=0; i<tempArray.length; i++){
+			            if(params.indexOf(tempArray[i].split('=')[0])<0){
+			                newAdditionalURL += temp + tempArray[i];
+			                temp = "&";
+			            }
+			        }
+			    }
+
+			    var rows_txt = temp 
+			    for (var i=0; i<params.length;i++){
+			    	rows_txt += params[i] + "=" + paramVals[i] + "&";
+				}
+				rows_txt = rows_txt.replace(/&+$/, ""); // Remove trailing &s
+			    return baseURL + "?" + newAdditionalURL + rows_txt;
+			}
+
+			var st = urlParams.get('st');
+			var m = urlParams.get('m');
+
+			if (!m){
+				mins = parseInt(document.getElementById('box').value);
+				window.location = updateURLParameter(window.location.toString(), ["m"], [mins]);
+			} else {
+				mins = parseInt(m);
+			}
+
+			if (!st) { 
+				st = Math.floor(Date.now()).toString(36);
+				window.location = updateURLParameter(window.location.toString(), ["st"], [st]);
+			};
+
+			function start(m){
+				if (m==null) {
+					m = parseInt(document.getElementById('box').value)
+				}
+				st = Math.floor(Date.now()).toString(36);
+				mins = m;
+				window.location = updateURLParameter(window.location.toString(), ["st","m"], [st, mins]);
+			};
+
+			d3.select("#permalink").html("<a href = '"+ window.location + "'>Permalink</a> | <a href = '"+ window.location + "&embed=1'>Embed</a>");
+
+			document.getElementById('box').value=mins;
+
+			var x = setInterval(function() {
+				time_now = Date.now()
+
+				time_end = parseInt(st,36) + mins * 60 * 1000
+
+				diff = time_end - time_now
+				if (diff>0) {
+					s = Math.floor(diff/1000)
+					m = Math.floor(s/60)
+					s = s - m*60
+
+					d3.select("#timer").html(m + ":" + String(s).padStart(2, '0') ).attr("style", "color: blue");
+					// document.getElementById("timer").innerHtml()
+				}
+				else {
+					d3.select("#timer").html("&#9749; DONE! &#9749;").attr("style", "color: red");
+					clearInterval(x);
+				}
+			}, 100)
+			var place = window.location.toString();
+
+			if (urlParams.get('embed')) {
+				document.getElementById('start').remove()
+				document.getElementById('footer').remove()
+			};
+
+		</script>
+	</body>
+</html>

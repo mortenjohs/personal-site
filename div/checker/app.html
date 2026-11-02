@@ -1,0 +1,3009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IACR/IARC Cancer Registry Data Quality Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+        .modal-header, .modal-body, .modal-footer { padding: 10px; }
+        .modal-header { border-bottom: 1px solid #eee; }
+        .modal-footer { border-top: 1px solid #eee; text-align: right; }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .lookup-status-loading { color: #d97706; }
+        .lookup-status-loaded { color: #16a34a; }
+        .lookup-status-failed { color: #dc2626; }
+        .spinner-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .preview-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .preview-table th, .preview-table td {
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .preview-table th {
+            background-color: #f7fafc;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .tab-button.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+        }
+         .tab-button {
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #3730a3; /* indigo-800 */
+        }
+        .input-group-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .input-group-container input[type="text"],
+        .input-group-container select {
+             margin-top: 0.25rem;
+             border-radius: 0.375rem;
+             border: 1px solid #d1d5db;
+             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+             padding: 0.5rem;
+             font-size: 0.875rem;
+        }
+        .input-group-container input[type="text"] {
+            flex-grow: 1;
+        }
+        .input-group-container select {
+            min-width: 150px;
+            flex-shrink: 0;
+        }
+        .calendar-button {
+            padding: 0.5rem 0.75rem;
+            background-color: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            height: calc(2.25rem + 2px);
+            line-height: 1;
+        }
+        .calendar-button:hover {
+            background-color: #e0e7ff;
+        }
+        .toggle-arrow {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            margin-left: 5px;
+            vertical-align: middle;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+        }
+        .toggle-arrow.down {
+            border-top: 5px solid currentColor;
+        }
+        .toggle-arrow.up {
+            border-bottom: 5px solid currentColor;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .summary-item {
+            background-color: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb;
+        }
+        .summary-item strong {
+            color: #1f2937;
+        }
+        .rule-item {
+            display: flex;
+            align-items: center;
+        }
+        .rule-item input[type="checkbox"] {
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .duplicate-mapping-warning {
+            color: #dc2626; /* red-600 */
+            font-size: 0.75rem; /* text-xs */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 md:p-8">
+
+    <div class="container mx-auto max-w-4xl bg-white p-6 rounded-lg shadow-xl">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-blue-600">IACR/IARC Cancer Registry Data Quality Checker</h1>
+            <p class="text-gray-600 mt-1">Upload your CSV, map columns, and run quality checks. Required lookup files will be loaded automatically.</p>
+        </header>
+
+        <div id="messageArea" class="mb-4"></div>
+
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                <button id="tabFileProcessing" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md">
+                    File Processing Mode
+                </button>
+                <button id="tabSingleRecord" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-md">
+                    Single Record Entry Mode
+                </button>
+            </nav>
+        </div>
+
+        <div id="fileProcessingContent">
+            <section id="fileUploadSection" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Upload Main Data File</h2>
+                <input type="file" id="csvFileInput" accept=".csv,.txt,.tsv" class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+            </section>
+
+            <section id="dataPreviewAndDelimiterSection" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 hidden">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">1b. Preview Data & Adjust File Settings</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label for="csvDelimiterInput" class="block text-sm font-medium text-gray-700">File Delimiter:</label>
+                        <input type="text" id="csvDelimiterInput" value="," class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-2" placeholder="e.g., , or ; or | or \t for tab">
+                        <p class="text-xs text-gray-500 mt-1">Auto-detected. Change if incorrect (e.g., `\t` for tab).</p>
+                    </div>
+                    <div>
+                        <label for="dateFormatSelector" class="block text-sm font-medium text-gray-700">Input Date Format:</label>
+                        <select id="dateFormatSelector" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-2">
+                            <option value="YYYYMMDD">YYYYMMDD (e.g., 20230115)</option>
+                            <option value="DDMMYYYY">DDMMYYYY (e.g., 15012023)</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (e.g., 15/01/2023 or 1/1/2023)</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (e.g., 2023-01-15 or 2023-1-1)</option>
+                            <option value="MM-DD-YYYY">MM-DD-YYYY (e.g., 01-15-2023 or 1-5-2023)</option>
+                            <option value="YYYY/MM/DD">YYYY/MM/DD (e.g., 2023/01/15 or 2023/1/1)</option>
+                            <option value="DD-MM-YYYY">DD-MM-YYYY (e.g., 15-01-2023 or 5-1-2023)</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (e.g., 01/15/2023 or 1/5/2023)</option>
+                        </select>
+                         <p class="text-xs text-gray-500 mt-1">Select the date format used in your input file.</p>
+                    </div>
+                </div>
+                 <button id="reloadWithDelimiterButton" class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow text-sm">
+                    Reload with New Settings
+                </button>
+                <h3 class="text-lg font-semibold mt-4 mb-2 text-gray-700">Data Preview (First 10 Rows):</h3>
+                <div id="dataPreviewTableContainer" class="preview-table-container">
+                    </div>
+            </section>
+
+            <section id="columnMappingSection" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-semibold text-gray-700">2. Map Main CSV Columns to Standard Columns</h2>
+                    <div class="tooltip">
+                        <span class="text-blue-500 cursor-pointer font-bold">(?)</span>
+                        <span class="tooltiptext">Map columns from your main CSV to the standard medical data fields. 'Record Identifier' is crucial for clear messages.</span>
+                    </div>
+                </div>
+                <div id="mappingContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </section>
+        </div>
+
+        <div id="singleRecordContent" class="hidden">
+            <section id="singleRecordEntrySection" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Enter Record Data</h2>
+                 <div class="mb-4">
+                    <label for="singleEntryDateFormatSelector" class="block text-sm font-medium text-gray-700">Date Input Format:</label>
+                    <select id="singleEntryDateFormatSelector" class="mt-1 block w-full md:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-2">
+                        <option value="YYYYMMDD">YYYYMMDD (e.g., 20230115)</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD (e.g., 2023-01-15)</option>
+                        <option value="YYYY/MM/DD">YYYY/MM/DD (e.g., 2023/01/15)</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY (e.g., 15/01/2023)</option>
+                        <option value="DD-MM-YYYY">DD-MM-YYYY (e.g., 15-01-2023)</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY (e.g., 01/15/2023)</option>
+                        <option value="MM-DD-YYYY">MM-DD-YYYY (e.g., 01-15-2023)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Select the format you will use for typing dates below. Calendar picker always outputs<y_bin_46>MMDD.</p>
+                </div>
+                <form id="singleRecordForm" class="space-y-4">
+                    </form>
+                 <button id="runChecksSingleRecordButton" class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow">
+                    Run Checks on This Record
+                </button>
+            </section>
+        </div>
+
+        <section id="rulesOverviewSection" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 hidden">
+            <div class="flex justify-between items-center mb-3 cursor-pointer" id="toggleRulesHeader">
+                <h2 class="text-xl font-semibold text-gray-700">3. Defined Quality Rules</h2>
+                <button id="toggleRulesButton" class="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                    <span id="toggleRulesText">Show Rules</span> <span id="toggleRulesArrow" class="toggle-arrow down ml-1"></span>
+                </button>
+            </div>
+            <div id="rulesList" class="text-sm space-y-2 hidden"></div>
+        </section>
+
+        <section id="actionButtons" class="mb-6 text-center hidden">
+            <button id="runChecksButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow mr-2">
+                Run Quality Checks (File)
+            </button>
+             <button id="downloadResultsButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow mr-2 hidden">
+                Download Results CSV
+            </button>
+            <button id="resetButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow">
+                Reset All
+            </button>
+        </section>
+
+        <section id="resultsSection" class="p-4 border border-gray-200 rounded-lg bg-gray-50 hidden">
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">4. Quality Check Results</h2>
+            <div id="resultsSummary" class="mb-4"></div>
+            <div id="resultsOutput" class="text-sm space-y-3 max-h-96 overflow-y-auto"></div>
+        </section>
+    </div>
+
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-button" onclick="closeModal()">&times;</span>
+                <h2 id="modalTitle" class="text-lg font-semibold">Notification</h2>
+            </div>
+            <div class="modal-body"><p id="modalMessage"></p></div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingSpinner" class="spinner-overlay hidden">
+        <div class="spinner"></div>
+        <p class="text-white text-lg mt-3">Processing checks...</p>
+        <p id="spinnerCounter" class="text-white text-sm mt-2"></p>
+    </div>
+
+    <div id="datePickerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-button" onclick="closeDatePickerModal()">&times;</span>
+                <h2 class="text-lg font-semibold">Select Date</h2>
+            </div>
+            <div class="modal-body space-y-3">
+                <div>
+                    <label for="datePickerYear" class="block text-sm font-medium text-gray-700">Year:</label>
+                    <select id="datePickerYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></select>
+                </div>
+                <div>
+                    <label for="datePickerMonth" class="block text-sm font-medium text-gray-700">Month:</label>
+                    <select id="datePickerMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></select>
+                </div>
+                <div>
+                    <label for="datePickerDay" class="block text-sm font-medium text-gray-700">Day:</label>
+                    <select id="datePickerDay" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></select>
+                </div>
+                <input type="hidden" id="datePickerTargetInputId">
+            </div>
+            <div class="modal-footer">
+                <button onclick="setDateFromPicker()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md mr-2">Set Date</button>
+                <button onclick="closeDatePickerModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Configuration: Standard Columns ---
+        const STANDARD_COLUMNS = [
+            { id: 'RECORD_ID_COLUMN', name: 'Record Identifier', description: 'A unique ID for the patient or record (e.g., PatientNo, StudyID).', inputType: 'text' },
+            { id: 'INCIDENCE_DATE_COLUMN', name: 'Incidence Date', description: 'Date of incidence/diagnosis, format YYYYMMDD (MM/DD can be 00 or 99 for unknown).', inputType: 'text', placeholder: 'YYYYMMDD', isDate: true },
+            { id: 'BIRTH_DATE_COLUMN', name: 'Birth Date', description: 'Date of birth, format YYYYMMDD (MM/DD can be 00 or 99 for unknown).', inputType: 'text', placeholder: 'YYYYMMDD', isDate: true },
+            { id: 'DLC_COLUMN', name: 'Date of Last Contact (DLC)', description: 'Date of last contact, format YYYYMMDD (MM/DD can be 00 or 99 for unknown).', inputType: 'text', placeholder: 'YYYYMMDD', isDate: true },
+            { id: 'DATE_OF_DEATH_COLUMN', name: 'Date of Death (DOD)', description: 'Date of death, format YYYYMMDD (MM/DD can be 00 or 99 for unknown).', inputType: 'text', placeholder: 'YYYYMMDD', isDate: true },
+            { id: 'VITAL_STATUS_COLUMN', name: 'Vital Status', description: 'Patient\'s vital status (e.g., 1-Alive, 2-Dead, 9-Unknown).', inputType: 'text', placeholder: '1, 2, or 9', dictionaryKey: 'vitalStatus' },
+            { id: 'AGE_COLUMN', name: 'Age', description: 'Age in years (1-3 digits). Use 99 or 999 for unknown.', inputType: 'number', placeholder: 'e.g., 65' },
+            { id: 'SEX_COLUMN', name: 'Sex', description: 'Biological sex. Common codes: 1 (Male), 2 (Female), M, F.', inputType: 'text', placeholder: '1, 2, M, or F', dictionaryKey: 'sex' },
+            { id: 'TOPOGRAPHY_COLUMN', name: 'Topography (ICD-O-3)', description: 'Site code (3 digits from ICD-O-3, e.g., C501 or 501). Leading zeros are preserved if present in data.', inputType: 'text', placeholder: 'e.g., C501 or 501', dictionaryKey: 'topography' },
+            { id: 'MORPHOLOGY_COLUMN', name: 'Morphology (ICD-O-3)', description: 'Histology code (4 digits from ICD-O-3). Leading zeros preserved.', inputType: 'text', placeholder: 'e.g., 8000', dictionaryKey: 'morphology4' },
+            { id: 'BEHAVIOUR_COLUMN', name: 'Behaviour (ICD-O-3)', description: 'Behavior code (1 digit from ICD-O-3). Leading zeros preserved.', inputType: 'text', placeholder: 'e.g., 3', dictionaryKey: 'behaviour' },
+            { id: 'BASIS_DIAGNOSIS_COLUMN', name: 'Basis of Diagnosis', description: 'IACR/IARC standard code (1 character).', inputType: 'text', placeholder: 'e.g., 7', dictionaryKey: 'basis' },
+            { id: 'GRADE_COLUMN', name: 'Grade/Differentiation', description: 'Histologic grade or differentiation (e.g., 1-4, 9).', inputType: 'text', placeholder: 'e.g., 2 or 9', dictionaryKey: 'grade' }
+        ];
+        const ID_COLUMN_KEY = 'RECORD_ID_COLUMN';
+        const AGE_TRIANGULATION_YEAR_CUTOFF = 2;
+
+        // --- Global State for Lookup Data ---
+        let ageMorphologyLookupData = [];
+        let ageTopoMorphLookupData = [];
+        let ageTopographyLookupData = [];
+        let sexMorphologyLookupData = new Set();
+        let topographyBehaviourLookupData = new Set();
+        let basisMorphologyQueryLookupData = new Set();
+        let basisMorphoTopoQueryLookupData = new Set();
+        let gradeInvalidLookupData = new Set();
+        let sexTopographyInvalidLookupData = new Set();
+        let topographyInvalidLookupData = new Set();
+        let topoMorphRareLookupData = new Set();
+        // Dictionaries for valid codes
+        let basisDictionaryData = [];
+        let behaviourDictionaryData = [];
+        let gradeDictionaryData = [];
+        let morphology4DictionaryData = [];
+        let sexDictionaryData = [];
+        let topographyDictionaryData = [];
+        let vitalStatusDictionaryData = [];
+        let autoSelectKeywords = {};
+
+
+        // Status: 'initial', 'loading', 'loaded', 'failed'
+        let ageMorphologyFileStatus = { status: 'initial', fileName: 'rules/AgeMorphology_Rare.csv', error: null };
+        let ageTopoMorphFileStatus = { status: 'initial', fileName: 'rules/AgeTopographyMorphology_Rare.csv', error: null };
+        let ageTopographyFileStatus = { status: 'initial', fileName: 'rules/AgeTopography_Rare.csv', error: null };
+        let sexMorphologyFileStatus = { status: 'initial', fileName: 'rules/SexMorphology_Rare.csv', error: null };
+        let topographyBehaviourFileStatus = { status: 'initial', fileName: 'rules/TopographyBehaviour_Rare.csv', error: null };
+        let basisMorphologyQueryFileStatus = { status: 'initial', fileName: 'rules/BasisMorphology_Query.csv', error: null };
+        let basisMorphoTopoQueryFileStatus = { status: 'initial', fileName: 'rules/BasisMorphologyTopography_Query.csv', error: null };
+        let gradeInvalidFileStatus = { status: 'initial', fileName: 'rules/Grade_Invalid.csv', error: null };
+        let sexTopographyInvalidFileStatus = { status: 'initial', fileName: 'rules/SexTopography_Invalid.csv', error: null };
+        let topographyInvalidFileStatus = { status: 'initial', fileName: 'rules/Topography_Invalid.csv', error: null };
+        let topoMorphRareFileStatus = { status: 'initial', fileName: 'rules/TopographyMorphology_Rare.csv', error: null };
+        // Dictionary file statuses
+        let basisFileStatus = { status: 'initial', fileName: 'dictionaries/basis.tsv', error: null };
+        let behaviourFileStatus = { status: 'initial', fileName: 'dictionaries/behaviour.tsv', error: null };
+        let gradeFileStatus = { status: 'initial', fileName: 'dictionaries/grade.tsv', error: null };
+        let morphology4FileStatus = { status: 'initial', fileName: 'dictionaries/morphology4.tsv', error: null };
+        let sexFileStatus = { status: 'initial', fileName: 'dictionaries/sex.tsv', error: null };
+        let topographyFileStatus = { status: 'initial', fileName: 'dictionaries/topography.tsv', error: null };
+        let vitalStatusFileStatus = { status: 'initial', fileName: 'dictionaries/vitalstatus.tsv', error: null};
+        let autoSelectKeywordsFileStatus = { status: 'initial', fileName: 'conf/column_autoselect_keywords.json', error: null };
+
+
+        // --- Rule Definitions ---
+        const RULES = [
+            {
+                name: "Date Format Check (YYYYMMDD with Unknowns)",
+                description: "Validates IncidenceDate, BirthDate, DLC, and DOD are in YYYYMMDD format (MM/DD can be 00 or 99 for unknown) and represent plausible dates.",
+                standardInputColumns: [ID_COLUMN_KEY, "INCIDENCE_DATE_COLUMN", "BIRTH_DATE_COLUMN", "DLC_COLUMN", "DATE_OF_DEATH_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const datesToCheck = [
+                        { name: "Incidence Date", value: rowData["INCIDENCE_DATE_COLUMN"] },
+                        { name: "Birth Date", value: rowData["BIRTH_DATE_COLUMN"] },
+                        { name: "Date of Last Contact (DLC)", value: rowData["DLC_COLUMN"] },
+                        { name: "Date of Death (DOD)", value: rowData["DATE_OF_DEATH_COLUMN"] }
+                    ];
+                    datesToCheck.forEach(dateField => {
+                        if (dateField.value && !isValidYYYYMMDD(dateField.value)) {
+                             messages.push(`INVALID DATE FORMAT/VALUE: ${dateField.name} '${dateField.value}' for record ${idValue} is not a valid YYYYMMDD date (unknowns '00'/'99' allowed for MM/DD).`);
+                        }
+                    });
+                    return messages;
+                }
+            },
+             {
+                name: "Incidence Date Not in Future",
+                description: "Checks if Incidence Date is not after the current system date.",
+                standardInputColumns: [ID_COLUMN_KEY, "INCIDENCE_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dateStr = rowData["INCIDENCE_DATE_COLUMN"];
+                    if (!dateStr || !isValidYYYYMMDD(dateStr)) return messages;
+
+                    const year = parseInt(dateStr.substring(0, 4), 10);
+                    const monthStr = dateStr.substring(4, 6);
+                    const dayStr = dateStr.substring(6, 8);
+                    const isFullyKnown = monthStr !== "00" && monthStr !== "99" && dayStr !== "00" && dayStr !== "99";
+                    const currentDate = new Date();
+
+                    if (isFullyKnown) {
+                        const checkDate = new Date(year, parseInt(monthStr, 10) - 1, parseInt(dayStr, 10));
+                        currentDate.setHours(0,0,0,0);
+                        checkDate.setHours(0,0,0,0);
+                        if (checkDate > currentDate) {
+                            messages.push(`INVALID DATE IN FUTURE: Incidence Date (${dateStr}) is after current system date for record ${idValue}.`);
+                        }
+                    } else {
+                        if (year > currentDate.getFullYear()) {
+                             messages.push(`INVALID DATE IN FUTURE (YEAR): Incidence Date (${dateStr}) year is after current system year for record ${idValue}.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Birth Date Not in Future",
+                description: "Checks if Birth Date is not after the current system date.",
+                standardInputColumns: [ID_COLUMN_KEY, "BIRTH_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dateStr = rowData["BIRTH_DATE_COLUMN"];
+                    if (!dateStr || !isValidYYYYMMDD(dateStr)) return messages;
+
+                    const year = parseInt(dateStr.substring(0, 4), 10);
+                    const monthStr = dateStr.substring(4, 6);
+                    const dayStr = dateStr.substring(6, 8);
+                    const isFullyKnown = monthStr !== "00" && monthStr !== "99" && dayStr !== "00" && dayStr !== "99";
+                    const currentDate = new Date();
+
+                    if (isFullyKnown) {
+                        const checkDate = new Date(year, parseInt(monthStr, 10) - 1, parseInt(dayStr, 10));
+                        currentDate.setHours(0,0,0,0);
+                        checkDate.setHours(0,0,0,0);
+                        if (checkDate > currentDate) {
+                            messages.push(`INVALID DATE IN FUTURE: Birth Date (${dateStr}) is after current system date for record ${idValue}.`);
+                        }
+                    } else {
+                        if (year > currentDate.getFullYear()) {
+                             messages.push(`INVALID DATE IN FUTURE (YEAR): Birth Date (${dateStr}) year is after current system year for record ${idValue}.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "DLC Not in Future",
+                description: "Checks if Date of Last Contact (DLC) is not after the current system date.",
+                standardInputColumns: [ID_COLUMN_KEY, "DLC_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dlcDateStr = rowData["DLC_COLUMN"];
+                    if (!dlcDateStr || !isValidYYYYMMDD(dlcDateStr)) {
+                        return messages;
+                    }
+
+                    const dlcYear = parseInt(dlcDateStr.substring(0, 4), 10);
+                    const dlcMonthStr = dlcDateStr.substring(4, 6);
+                    const dlcDayStr = dlcDateStr.substring(6, 8);
+
+                    const dlcIsFullyKnown = dlcMonthStr !== "00" && dlcMonthStr !== "99" && dlcDayStr !== "00" && dlcDayStr !== "99";
+                    const currentDate = new Date();
+
+                    if (dlcIsFullyKnown) {
+                        const dlcDate = new Date(dlcYear, parseInt(dlcMonthStr, 10) - 1, parseInt(dlcDayStr, 10));
+                        currentDate.setHours(0,0,0,0);
+                        dlcDate.setHours(0,0,0,0);
+
+                        if (dlcDate > currentDate) {
+                            messages.push(`INVALID DATE IN FUTURE: DLC (${dlcDateStr}) is after current system date for record ${idValue}.`);
+                        }
+                    } else {
+                        if (dlcYear > currentDate.getFullYear()) {
+                             messages.push(`INVALID DATE IN FUTURE (YEAR): DLC (${dlcDateStr}) year is after current system year for record ${idValue}.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+             {
+                name: "Date of Death Not in Future",
+                description: "Checks if Date of Death (DOD) is not after the current system date.",
+                standardInputColumns: [ID_COLUMN_KEY, "DATE_OF_DEATH_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dodDateStr = rowData["DATE_OF_DEATH_COLUMN"];
+                    if (!dodDateStr || !isValidYYYYMMDD(dodDateStr)) return messages;
+
+                    const dodYear = parseInt(dodDateStr.substring(0, 4), 10);
+                    const dodMonthStr = dodDateStr.substring(4, 6);
+                    const dodDayStr = dodDateStr.substring(6, 8);
+                    const isFullyKnown = dodMonthStr !== "00" && dodMonthStr !== "99" && dodDayStr !== "00" && dodDayStr !== "99";
+                    const currentDate = new Date();
+
+                    if (isFullyKnown) {
+                        const dodDate = new Date(dodYear, parseInt(dodMonthStr, 10) - 1, parseInt(dodDayStr, 10));
+                        currentDate.setHours(0,0,0,0);
+                        dodDate.setHours(0,0,0,0);
+                        if (dodDate > currentDate) {
+                            messages.push(`INVALID DATE IN FUTURE: Date of Death (${dodDateStr}) is after current system date for record ${idValue}.`);
+                        }
+                    } else {
+                        if (dodYear > currentDate.getFullYear()) {
+                             messages.push(`INVALID DATE IN FUTURE (YEAR): Date of Death (${dodDateStr}) year is after current system year for record ${idValue}.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Incidence Date vs. Birth Date",
+                description: "Checks if Incidence Date is on or after Birth Date, considering unknown month/day.",
+                standardInputColumns: [ID_COLUMN_KEY, "INCIDENCE_DATE_COLUMN", "BIRTH_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const incidenceDateStr = rowData["INCIDENCE_DATE_COLUMN"];
+                    const birthDateStr = rowData["BIRTH_DATE_COLUMN"];
+
+                    if (!incidenceDateStr || !birthDateStr || !isValidYYYYMMDD(incidenceDateStr) || !isValidYYYYMMDD(birthDateStr)) {
+                        return messages;
+                    }
+
+                    const incYear = parseInt(incidenceDateStr.substring(0, 4), 10);
+                    const incMonthStr = incidenceDateStr.substring(4, 6);
+                    const incDayStr = incidenceDateStr.substring(6, 8);
+
+                    const birthYear = parseInt(birthDateStr.substring(0, 4), 10);
+                    const birthMonthStr = birthDateStr.substring(4, 6);
+                    const birthDayStr = birthDateStr.substring(6, 8);
+
+                    const incIsFullyKnown = incMonthStr !== "00" && incMonthStr !== "99" && incDayStr !== "00" && incDayStr !== "99";
+                    const birthIsFullyKnown = birthMonthStr !== "00" && birthMonthStr !== "99" && birthDayStr !== "00" && birthDayStr !== "99";
+
+                    if (incIsFullyKnown && birthIsFullyKnown) {
+                        const incidenceDate = new Date(incYear, parseInt(incMonthStr, 10) - 1, parseInt(incDayStr, 10));
+                        const birthDate = new Date(birthYear, parseInt(birthMonthStr, 10) - 1, parseInt(birthDayStr, 10));
+                        if (incidenceDate < birthDate) {
+                            messages.push(`INVALID DATE INCONSISTENCY: Incidence Date (${incidenceDateStr}) is before Birth Date (${birthDateStr}) for record ${idValue}.`);
+                        }
+                    } else {
+                        if (incYear < birthYear) {
+                            messages.push(`INVALID DATE INCONSISTENCY (YEAR): Incidence Date (${incidenceDateStr}) year is before Birth Date (${birthDateStr}) year for record ${idValue}.`);
+                        } else if (incYear === birthYear) {
+                            const incMonthKnown = incMonthStr !== "00" && incMonthStr !== "99";
+                            const birthMonthKnown = birthMonthStr !== "00" && birthMonthStr !== "99";
+                            if (incMonthKnown && birthMonthKnown) {
+                                const incMonth = parseInt(incMonthStr, 10);
+                                const birthMonth = parseInt(birthMonthStr, 10);
+                                if (incMonth < birthMonth) {
+                                    messages.push(`INVALID DATE INCONSISTENCY (MONTH): Incidence Date (${incidenceDateStr}) month is before Birth Date (${birthDateStr}) month in the same year for record ${idValue}.`);
+                                } else if (incMonth === birthMonth) {
+                                    const incDayKnown = incDayStr !== "00" && incDayStr !== "99";
+                                    const birthDayKnown = birthDayStr !== "00" && birthDayStr !== "99";
+                                    if (incDayKnown && birthDayKnown) {
+                                        const incDay = parseInt(incDayStr, 10);
+                                        const birthDay = parseInt(birthDayStr, 10);
+                                        if (incDay < birthDay) {
+                                            messages.push(`INVALID DATE INCONSISTENCY (DAY): Incidence Date (${incidenceDateStr}) day is before Birth Date (${birthDateStr}) day in the same year/month for record ${idValue}.`);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "DLC vs. Incidence Date",
+                description: "Checks if Date of Last Contact (DLC) is on or after Incidence Date, considering unknown month/day.",
+                standardInputColumns: [ID_COLUMN_KEY, "DLC_COLUMN", "INCIDENCE_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dlcDateStr = rowData["DLC_COLUMN"];
+                    const incidenceDateStr = rowData["INCIDENCE_DATE_COLUMN"];
+
+                    if (!dlcDateStr || !incidenceDateStr || !isValidYYYYMMDD(dlcDateStr) || !isValidYYYYMMDD(incidenceDateStr)) {
+                        return messages;
+                    }
+
+                    const dlcYear = parseInt(dlcDateStr.substring(0, 4), 10);
+                    const dlcMonthStr = dlcDateStr.substring(4, 6);
+                    const dlcDayStr = dlcDateStr.substring(6, 8);
+
+                    const incYear = parseInt(incidenceDateStr.substring(0, 4), 10);
+                    const incMonthStr = incidenceDateStr.substring(4, 6);
+                    const incDayStr = incidenceDateStr.substring(6, 8);
+
+                    const dlcIsFullyKnown = dlcMonthStr !== "00" && dlcMonthStr !== "99" && dlcDayStr !== "00" && dlcDayStr !== "99";
+                    const incIsFullyKnown = incMonthStr !== "00" && incMonthStr !== "99" && incDayStr !== "00" && incDayStr !== "99";
+
+                    if (dlcIsFullyKnown && incIsFullyKnown) {
+                        const dlcDate = new Date(dlcYear, parseInt(dlcMonthStr, 10) - 1, parseInt(dlcDayStr, 10));
+                        const incidenceDate = new Date(incYear, parseInt(incMonthStr, 10) - 1, parseInt(incDayStr, 10));
+                        if (dlcDate < incidenceDate) {
+                            messages.push(`INVALID DATE INCONSISTENCY: DLC (${dlcDateStr}) is before Incidence Date (${incidenceDateStr}) for record ${idValue}.`);
+                        }
+                    } else {
+                        if (dlcYear < incYear) {
+                            messages.push(`INVALID DATE INCONSISTENCY (YEAR): DLC (${dlcDateStr}) year is before Incidence Date (${incidenceDateStr}) year for record ${idValue}.`);
+                        } else if (dlcYear === incYear) {
+                            const dlcMonthKnown = dlcMonthStr !== "00" && dlcMonthStr !== "99";
+                            const incMonthKnown = incMonthStr !== "00" && incMonthStr !== "99";
+                            if (dlcMonthKnown && incMonthKnown) {
+                                const dlcMonth = parseInt(dlcMonthStr, 10);
+                                const incMonth = parseInt(incMonthStr, 10);
+                                if (dlcMonth < incMonth) {
+                                    messages.push(`INVALID DATE INCONSISTENCY (MONTH): DLC (${dlcDateStr}) month is before Incidence Date (${incidenceDateStr}) month in the same year for record ${idValue}.`);
+                                } else if (dlcMonth === incMonth) {
+                                    const dlcDayKnown = dlcDayStr !== "00" && dlcDayStr !== "99";
+                                    const incDayKnown = incDayStr !== "00" && incDayStr !== "99";
+                                    if (dlcDayKnown && incDayKnown) {
+                                        const dlcDay = parseInt(dlcDayStr, 10);
+                                        const incDay = parseInt(incDayStr, 10);
+                                        if (dlcDay < incDay) {
+                                            messages.push(`INVALID DATE INCONSISTENCY (DAY): DLC (${dlcDateStr}) day is before Incidence Date (${incidenceDateStr}) day in the same year/month for record ${idValue}.`);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Date of Death vs. Birth Date",
+                description: "Checks if Date of Death (DOD) is on or after Birth Date.",
+                standardInputColumns: [ID_COLUMN_KEY, "DATE_OF_DEATH_COLUMN", "BIRTH_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dodDateStr = rowData["DATE_OF_DEATH_COLUMN"];
+                    const birthDateStr = rowData["BIRTH_DATE_COLUMN"];
+                    if (!dodDateStr || !birthDateStr || !isValidYYYYMMDD(dodDateStr) || !isValidYYYYMMDD(birthDateStr)) return messages;
+                    const dodYear = parseInt(dodDateStr.substring(0,4)); const dodM = dodDateStr.substring(4,6); const dodD = dodDateStr.substring(6,8);
+                    const birthYear = parseInt(birthDateStr.substring(0,4)); const birthM = birthDateStr.substring(4,6); const birthD = birthDateStr.substring(6,8);
+                    const dodKnown = dodM !== "00" && dodM !== "99" && dodD !== "00" && dodD !== "99";
+                    const birthKnown = birthM !== "00" && birthM !== "99" && birthD !== "00" && birthD !== "99";
+
+                    if(dodKnown && birthKnown) {
+                        if (parseYYYYMMDD(dodDateStr) < parseYYYYMMDD(birthDateStr)) {
+                             messages.push(`INVALID DATE INCONSISTENCY: DOD (${dodDateStr}) is before Birth Date (${birthDateStr}) for record ${idValue}.`);
+                        }
+                    } else {
+                        if (dodYear < birthYear) {
+                            messages.push(`INVALID DATE INCONSISTENCY (YEAR): DOD (${dodDateStr}) year is before Birth Date (${birthDateStr}) year for record ${idValue}.`);
+                        } else if (dodYear === birthYear && (dodM !== "00" && dodM !== "99") && (birthM !== "00" && birthM !== "99")) {
+                            if (parseInt(dodM) < parseInt(birthM)) {
+                                messages.push(`INVALID DATE INCONSISTENCY (MONTH): DOD (${dodDateStr}) month is before Birth Date (${birthDateStr}) month in same year for record ${idValue}.`);
+                            } else if (parseInt(dodM) === parseInt(birthM) && (dodD !== "00" && dodD !== "99") && (birthD !== "00" && birthD !== "99")) {
+                                 if (parseInt(dodD) < parseInt(birthD)) {
+                                     messages.push(`INVALID DATE INCONSISTENCY (DAY): DOD (${dodDateStr}) day is before Birth Date (${birthDateStr}) day in same year/month for record ${idValue}.`);
+                                 }
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Date of Death vs. Incidence Date",
+                description: "Checks if Date of Death (DOD) is on or after Incidence Date.",
+                standardInputColumns: [ID_COLUMN_KEY, "DATE_OF_DEATH_COLUMN", "INCIDENCE_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const dodDateStr = rowData["DATE_OF_DEATH_COLUMN"];
+                    const incidenceDateStr = rowData["INCIDENCE_DATE_COLUMN"];
+                    if (!dodDateStr || !incidenceDateStr || !isValidYYYYMMDD(dodDateStr) || !isValidYYYYMMDD(incidenceDateStr)) return messages;
+                    const dodYear = parseInt(dodDateStr.substring(0,4)); const dodM = dodDateStr.substring(4,6); const dodD = dodDateStr.substring(6,8);
+                    const incYear = parseInt(incidenceDateStr.substring(0,4)); const incM = incidenceDateStr.substring(4,6); const incD = incidenceDateStr.substring(6,8);
+                    const dodKnown = dodM !== "00" && dodM !== "99" && dodD !== "00" && dodD !== "99";
+                    const incKnown = incM !== "00" && incM !== "99" && incD !== "00" && incD !== "99";
+
+                    if(dodKnown && incKnown) {
+                        if (parseYYYYMMDD(dodDateStr) < parseYYYYMMDD(incidenceDateStr)) {
+                             messages.push(`INVALID DATE INCONSISTENCY: DOD (${dodDateStr}) is before Incidence Date (${incidenceDateStr}) for record ${idValue}.`);
+                        }
+                    } else {
+                         if (dodYear < incYear) {
+                            messages.push(`INVALID DATE INCONSISTENCY (YEAR): DOD (${dodDateStr}) year is before Incidence Date (${incidenceDateStr}) year for record ${idValue}.`);
+                        } else if (dodYear === incYear && (dodM !== "00" && dodM !== "99") && (incM !== "00" && incM !== "99")) {
+                            if (parseInt(dodM) < parseInt(incM)) {
+                                messages.push(`INVALID DATE INCONSISTENCY (MONTH): DOD (${dodDateStr}) month is before Incidence Date (${incidenceDateStr}) month in the same year for record ${idValue}.`);
+                            } else if (parseInt(dodM) === parseInt(incM) && (dodD !== "00" && dodD !== "99") && (incD !== "00" && incD !== "99")) {
+                                 if (parseInt(dodD) < parseInt(incD)) {
+                                     messages.push(`INVALID DATE INCONSISTENCY (DAY): DOD (${dodDateStr}) day is before Incidence Date (${incidenceDateStr}) day in the same year/month for record ${idValue}.`);
+                                 }
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "DCO/Autopsy: DOD/DLC vs DOI",
+                description: "If Basis is DCO (0) or Autopsy (8), DOD (or DLC if DOD unknown) should be the same as DOI.",
+                standardInputColumns: [ID_COLUMN_KEY, "BASIS_DIAGNOSIS_COLUMN", "DATE_OF_DEATH_COLUMN", "DLC_COLUMN", "INCIDENCE_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const basis = String(rowData["BASIS_DIAGNOSIS_COLUMN"] || "");
+                    const dod = rowData["DATE_OF_DEATH_COLUMN"];
+                    const dlc = rowData["DLC_COLUMN"];
+                    const doi = rowData["INCIDENCE_DATE_COLUMN"];
+
+                    if ((basis === '0' || basis === '8') && doi && isValidYYYYMMDD(doi)) {
+                        if (dod && isValidYYYYMMDD(dod)) {
+                            if (dod !== doi) { // Changed from === to !==
+                                messages.push(`QUERY: For DCO/Autopsy case (Basis ${basis}), Date of Death (${dod}) is different from Date of Incidence (${doi}) for record ${idValue}. This is unusual.`);
+                            }
+                        } else if (dlc && isValidYYYYMMDD(dlc)) {
+                            if (dlc !== doi) { // Changed from === to !==
+                                messages.push(`QUERY: For DCO/Autopsy case (Basis ${basis}) with unknown DOD, DLC (${dlc}) is different from Date of Incidence (${doi}) for record ${idValue}. This is unusual.`);
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "DCO/Autopsy: Vital Status Check",
+                description: "If Basis is DCO (0) or Autopsy (8), Vital Status should not be 'Alive' (1).",
+                standardInputColumns: [ID_COLUMN_KEY, "BASIS_DIAGNOSIS_COLUMN", "VITAL_STATUS_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const basis = String(rowData["BASIS_DIAGNOSIS_COLUMN"] || "");
+                    const vitalStatus = String(rowData["VITAL_STATUS_COLUMN"] || "");
+                    if ((basis === '0' || basis === '8') && vitalStatus === '1') {
+                        messages.push(`INVALID VITAL STATUS: For DCO/Autopsy case (Basis ${basis}), Vital Status is 'Alive' (1) for record ${idValue}. Should be Dead (2) or Unknown (9).`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Alive/Dead: Missing DLC",
+                description: "If Vital Status is Alive (1) or Dead (2), Date of Last Contact (DLC) should be provided and valid.",
+                standardInputColumns: [ID_COLUMN_KEY, "VITAL_STATUS_COLUMN", "DLC_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const vitalStatus = String(rowData["VITAL_STATUS_COLUMN"] || "");
+                    const dlc = rowData["DLC_COLUMN"];
+                    if ((vitalStatus === '1' || vitalStatus === '2') && (!dlc || !isValidYYYYMMDD(dlc))) {
+                        messages.push(`QUERY: Vital Status is '${vitalStatus}' but Date of Last Contact (DLC) is missing or invalid for record ${idValue}.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Unknown Vital Status with Known DLC",
+                description: "If Vital Status is Unknown (9), a fully known Date of Last Contact (DLC) is unusual.",
+                standardInputColumns: [ID_COLUMN_KEY, "VITAL_STATUS_COLUMN", "DLC_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const vitalStatus = String(rowData["VITAL_STATUS_COLUMN"] || "");
+                    const dlc = rowData["DLC_COLUMN"];
+                    if (vitalStatus === '9' && dlc && isValidYYYYMMDD(dlc)) {
+                        const dlcMonthStr = dlc.substring(4, 6);
+                        const dlcDayStr = dlc.substring(6, 8);
+                        if (dlcMonthStr !== "00" && dlcMonthStr !== "99" && dlcDayStr !== "00" && dlcDayStr !== "99") {
+                            messages.push(`QUERY: Vital Status is Unknown (9) but a fully known Date of Last Contact (DLC: ${dlc}) is provided for record ${idValue}.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Vital Status & Date of Death Consistency",
+                description: "Checks consistency between Vital Status, Date of Death (DOD), and Date of Last Contact (DLC).",
+                standardInputColumns: [ID_COLUMN_KEY, "VITAL_STATUS_COLUMN", "DATE_OF_DEATH_COLUMN", "DLC_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const vitalStatus = String(rowData["VITAL_STATUS_COLUMN"] || "");
+                    const dodStr = rowData["DATE_OF_DEATH_COLUMN"];
+                    const dlcStr = rowData["DLC_COLUMN"];
+
+                    if (vitalStatus === '1') { // Alive
+                        if (dodStr && isValidYYYYMMDD(dodStr)) {
+                            messages.push(`INVALID DOD: Date of Death (${dodStr}) provided for an 'Alive' patient (Vital Status: 1) for record ${idValue}.`);
+                        }
+                    } else if (vitalStatus === '2') { // Dead
+                        if (!dodStr || !isValidYYYYMMDD(dodStr)) {
+                            messages.push(`QUERY MISSING DOD: Date of Death should be provided for a 'Dead' patient (Vital Status: 2) for record ${idValue}.`);
+                        } else if (dlcStr && isValidYYYYMMDD(dlcStr)) {
+                            const dodYear = parseInt(dodStr.substring(0,4)); const dodM = dodStr.substring(4,6); const dodD = dodStr.substring(6,8);
+                            const dlcYear = parseInt(dlcStr.substring(0,4)); const dlcM = dlcStr.substring(4,6); const dlcD = dlcStr.substring(6,8);
+                            const dodKnown = dodM !== "00" && dodM !== "99" && dodD !== "00" && dodD !== "99";
+                            const dlcKnown = dlcM !== "00" && dlcM !== "99" && dlcD !== "00" && dlcD !== "99";
+
+                            if(dodKnown && dlcKnown) {
+                                if (parseYYYYMMDD(dodStr) > parseYYYYMMDD(dlcStr)) {
+                                     messages.push(`INVALID DOD vs DLC: Date of Death (${dodStr}) is after Date of Last Contact (${dlcStr}) for record ${idValue}.`);
+                                }
+                            } else {
+                                 if (dodYear > dlcYear) {
+                                    messages.push(`INVALID DOD vs DLC (YEAR): Date of Death (${dodStr}) year is after Date of Last Contact (${dlcStr}) year for record ${idValue}.`);
+                                } else if (dodYear === dlcYear && (dodM !== "00" && dodM !== "99") && (dlcM !== "00" && dlcM !== "99")) {
+                                    if (parseInt(dodM) > parseInt(dlcM)) {
+                                        messages.push(`INVALID DOD vs DLC (MONTH): Date of Death (${dodStr}) month is after Date of Last Contact (${dlcStr}) month in same year for record ${idValue}.`);
+                                    } else if (parseInt(dodM) === parseInt(dlcM) && (dodD !== "00" && dodD !== "99") && (dlcD !== "00" && dlcD !== "99")) {
+                                         if (parseInt(dodD) > parseInt(dlcD)) {
+                                             messages.push(`INVALID DOD vs DLC (DAY): Date of Death (${dodStr}) day is after Date of Last Contact (${dlcStr}) day in same year/month for record ${idValue}.`);
+                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Age Validation",
+                description: "Checks Age format (1-3 digits, or 99/999 for unknown).",
+                standardInputColumns: [ID_COLUMN_KEY, "AGE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const age = rowData["AGE_COLUMN"];
+                    if (age && !/^(\d{1,3}|99|999)$/.test(age)) {
+                         messages.push(`INVALID AGE: Age '${age}' for record ${idValue} is not 1-3 digits or 99/999.`);
+                    } else if (age && (parseInt(age, 10) > 130 && parseInt(age, 10) !== 999 && parseInt(age, 10) !== 99 )) {
+                         messages.push(`QUESTIONABLE AGE: Age '${age}' for record ${idValue} is unusually high.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Age Triangulation Check",
+                description: `Compares provided Age with age calculated from (Incidence Date - Birth Date). Flags if difference > ${AGE_TRIANGULATION_YEAR_CUTOFF} years (invalid) or (if dates fully known) 0 < diff <= ${AGE_TRIANGULATION_YEAR_CUTOFF} years (query).`,
+                standardInputColumns: [ID_COLUMN_KEY, "AGE_COLUMN", "INCIDENCE_DATE_COLUMN", "BIRTH_DATE_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const providedAgeStr = rowData["AGE_COLUMN"];
+                    const incidenceDateStr = rowData["INCIDENCE_DATE_COLUMN"];
+                    const birthDateStr = rowData["BIRTH_DATE_COLUMN"];
+
+                    if (!providedAgeStr || providedAgeStr === "99" || providedAgeStr === "999" || !/^(\d{1,3})$/.test(providedAgeStr)) {
+                        return messages;
+                    }
+                    if (!incidenceDateStr || !birthDateStr || !isValidYYYYMMDD(incidenceDateStr) || !isValidYYYYMMDD(birthDateStr)) {
+                        return messages;
+                    }
+
+                    const providedAge = parseInt(providedAgeStr, 10);
+
+                    const incYear = parseInt(incidenceDateStr.substring(0, 4), 10);
+                    const incMonthStr = incidenceDateStr.substring(4, 6);
+                    const incDayStr = incidenceDateStr.substring(6, 8);
+
+                    const birthYear = parseInt(birthDateStr.substring(0, 4), 10);
+                    const birthMonthStr = birthDateStr.substring(4, 6);
+                    const birthDayStr = birthDateStr.substring(6, 8);
+
+                    let calculatedAgeInYears = incYear - birthYear;
+
+                    const incMonthIsKnown = incMonthStr !== "00" && incMonthStr !== "99";
+                    const birthMonthIsKnown = birthMonthStr !== "00" && birthMonthStr !== "99";
+                    const incDayIsKnown = incDayStr !== "00" && incDayStr !== "99";
+                    const birthDayIsKnown = birthDayStr !== "00" && birthDayStr !== "99";
+
+                    const datesFullyKnown = incMonthIsKnown && birthMonthIsKnown && incDayIsKnown && birthDayIsKnown;
+
+                    if (datesFullyKnown) {
+                        const numIncMonth = parseInt(incMonthStr, 10);
+                        const numBirthMonth = parseInt(birthMonthStr, 10);
+                        if (numIncMonth < numBirthMonth) {
+                            calculatedAgeInYears--;
+                        } else if (numIncMonth === numBirthMonth) {
+                            const numIncDay = parseInt(incDayStr, 10);
+                            const numBirthDay = parseInt(birthDayStr, 10);
+                            if (numIncDay < numBirthDay) {
+                                calculatedAgeInYears--;
+                            }
+                        }
+                    }
+
+                    if (calculatedAgeInYears < 0) calculatedAgeInYears = 0;
+
+                    const ageDifference = Math.abs(calculatedAgeInYears - providedAge);
+
+                    if (ageDifference > AGE_TRIANGULATION_YEAR_CUTOFF) {
+                        messages.push(`INVALID AGE TRIANGULATION: Provided Age (${providedAgeStr}) differs by ${ageDifference} years from Calculated Age (${calculatedAgeInYears} from ${incidenceDateStr}-${birthDateStr}) for record ${idValue}.`);
+                    } else if (datesFullyKnown && ageDifference > 0 && ageDifference <= AGE_TRIANGULATION_YEAR_CUTOFF) {
+                        messages.push(`QUERY AGE TRIANGULATION: Provided Age (${providedAgeStr}) differs by ${ageDifference} years from Calculated Age (${calculatedAgeInYears} from ${incidenceDateStr}-${birthDateStr}) for record ${idValue}.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Sex Code Validation",
+                description: "Checks Sex code against common values (1, 2, M, F) or dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "SEX_COLUMN"],
+                requiresLookup: "sex",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const sex = String(rowData["SEX_COLUMN"] || "").toUpperCase();
+                    if (!sex) return messages;
+
+                    if (sexFileStatus.status === 'loaded' && sexDictionaryData.length > 0) {
+                        if (!sexDictionaryData.some(item => item.code.toUpperCase() === sex)) {
+                             messages.push(`INVALID CODE: Sex '${rowData["SEX_COLUMN"]}' for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                        if (!['1', '2', 'M', 'F'].includes(sex)) {
+                            messages.push(`INVALID SEX CODE (Fallback): Sex '${rowData["SEX_COLUMN"]}' for record ${idValue} is not one of the expected values (1, 2, M, F). Dictionary not loaded.`);
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "ICD-O Code Lengths",
+                description: "Validates digit length for Topography (3), Morphology (4), Behaviour (1).",
+                standardInputColumns: [ID_COLUMN_KEY, "TOPOGRAPHY_COLUMN", "MORPHOLOGY_COLUMN", "BEHAVIOUR_COLUMN"],
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const topographyRaw = String(rowData["TOPOGRAPHY_COLUMN"] || "");
+                    const morphologyRaw = String(rowData["MORPHOLOGY_COLUMN"] || "");
+                    const behaviourRaw = String(rowData["BEHAVIOUR_COLUMN"] || "");
+
+                    const topography = topographyRaw.replace(/[^0-9]/g, '');
+                    const morphology = morphologyRaw.replace(/[^0-9]/g, '');
+                    const behaviour = behaviourRaw.replace(/[^0-9]/g, '');
+
+                    if (topographyRaw && topography.length !== 3) {
+                        messages.push(`INVALID TOPOGRAPHY LENGTH: Code '${topographyRaw}' (parsed as '${topography}') for record ${idValue} must be 3 digits.`);
+                    }
+                    if (morphologyRaw && morphology.length !== 4) {
+                        messages.push(`INVALID MORPHOLOGY LENGTH: Code '${morphologyRaw}' (parsed as '${morphology}') for record ${idValue} must be 4 digits.`);
+                    }
+                    if (behaviourRaw && behaviour.length !== 1) {
+                        messages.push(`INVALID BEHAVIOUR LENGTH: Code '${behaviourRaw}' (parsed as '${behaviour}') for record ${idValue} must be 1 digit.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Basis of Diagnosis Code Validation",
+                description: "Checks if Basis of Diagnosis is a single character and valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "BASIS_DIAGNOSIS_COLUMN"],
+                requiresLookup: "basis",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const basis = String(rowData["BASIS_DIAGNOSIS_COLUMN"] || "");
+                    if (!basis) return messages;
+
+                    if (basis.length !== 1) {
+                        messages.push(`INVALID BASIS DX LENGTH: Code '${basis}' for record ${idValue} must be a single character.`);
+                    }
+                    if (basisFileStatus.status === 'loaded' && basisDictionaryData.length > 0) {
+                        if (!basisDictionaryData.some(item => item.code === basis)) {
+                             messages.push(`INVALID CODE: Basis of Diagnosis '${basis}' for record ${idValue} not found in dictionary.`);
+                        }
+                    } else if (basis.length === 1) {
+                        console.warn(`Basis of Diagnosis dictionary not loaded. Cannot validate code '${basis}'.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Grade Code Validation",
+                description: "Checks if Grade is valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "GRADE_COLUMN"],
+                requiresLookup: "grade",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const grade = String(rowData["GRADE_COLUMN"] || "");
+                    if (!grade) return messages;
+
+                    if (gradeFileStatus.status === 'loaded' && gradeDictionaryData.length > 0) {
+                        if (!gradeDictionaryData.some(item => item.code === grade)) {
+                             messages.push(`INVALID CODE: Grade '${grade}' for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                         console.warn(`Grade dictionary not loaded. Cannot validate code '${grade}'.`);
+                    }
+                    return messages;
+                }
+            },
+             {
+                name: "Behaviour Code Validation",
+                description: "Checks if Behaviour code is valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "BEHAVIOUR_COLUMN"],
+                requiresLookup: "behaviour",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const behaviour = String(rowData["BEHAVIOUR_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!behaviour) return messages;
+
+                    if (behaviourFileStatus.status === 'loaded' && behaviourDictionaryData.length > 0) {
+                         if (!behaviourDictionaryData.some(item => item.code === behaviour)) {
+                             messages.push(`INVALID CODE: Behaviour code '${rowData["BEHAVIOUR_COLUMN"]}' (parsed as '${behaviour}') for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                         console.warn(`Behaviour dictionary not loaded. Cannot validate code '${behaviour}'.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Topography Code Validation",
+                description: "Checks if Topography code is valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "TOPOGRAPHY_COLUMN"],
+                requiresLookup: "topography",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!topography) return messages;
+
+                    if (topographyFileStatus.status === 'loaded' && topographyDictionaryData.length > 0) {
+                         if (!topographyDictionaryData.some(item => item.code === topography)) {
+                             messages.push(`INVALID CODE: Topography code '${rowData["TOPOGRAPHY_COLUMN"]}' (parsed as '${topography}') for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                         console.warn(`Topography dictionary not loaded. Cannot validate code '${topography}'.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Morphology Code Validation",
+                description: "Checks if Morphology code is valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "MORPHOLOGY_COLUMN"],
+                requiresLookup: "morphology4",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!morphology) return messages;
+
+                    if (morphology4FileStatus.status === 'loaded' && morphology4DictionaryData.length > 0) {
+                         if (!morphology4DictionaryData.some(item => item.code === morphology)) {
+                             messages.push(`INVALID CODE: Morphology code '${rowData["MORPHOLOGY_COLUMN"]}' (parsed as '${morphology}') for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                         console.warn(`Morphology dictionary not loaded. Cannot validate code '${morphology}'.`);
+                    }
+                    return messages;
+                }
+            },
+             {
+                name: "Vital Status Code Validation",
+                description: "Checks if Vital Status code is valid per dictionary.",
+                standardInputColumns: [ID_COLUMN_KEY, "VITAL_STATUS_COLUMN"],
+                requiresLookup: "vitalStatus",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    const vitalStatus = String(rowData["VITAL_STATUS_COLUMN"] || "");
+                    if (!vitalStatus) return messages;
+
+                    if (vitalStatusFileStatus.status === 'loaded' && vitalStatusDictionaryData.length > 0) {
+                         if (!vitalStatusDictionaryData.some(item => item.code === vitalStatus)) {
+                             messages.push(`INVALID CODE: Vital Status '${vitalStatus}' for record ${idValue} not found in dictionary.`);
+                        }
+                    } else {
+                         console.warn(`Vital Status dictionary not loaded. Cannot validate code '${vitalStatus}'.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Rare Age-Morphology Combination",
+                description: "Flags records with specific age and morphology combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "AGE_COLUMN", "MORPHOLOGY_COLUMN"],
+                requiresLookup: "ageMorphology",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (ageMorphologyFileStatus.status !== 'loaded' || ageMorphologyLookupData.length === 0) return messages;
+                    const ageStr = rowData["AGE_COLUMN"];
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!ageStr || !morphology || isNaN(parseInt(ageStr, 10)) || ageStr === "99" || ageStr === "999") return messages;
+                    const patientAge = parseInt(ageStr, 10);
+                    for (const combo of ageMorphologyLookupData) {
+                        if (patientAge >= combo.ageMin && patientAge <= combo.ageMax && morphology === combo.morphology) {
+                            messages.push(`RARE COMBINATION: Record ${idValue} (Age: ${patientAge}, Morph: ${morphology}) matches rare combination (Lookup: Age ${combo.ageMin}-${combo.ageMax}, Morph ${combo.morphology}).`);
+                            break;
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Rare Age-Topography-Morphology Combination",
+                description: "Flags records with specific age, topography, and morphology combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "AGE_COLUMN", "TOPOGRAPHY_COLUMN", "MORPHOLOGY_COLUMN"],
+                requiresLookup: "ageTopoMorph",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                     if (ageTopoMorphFileStatus.status !== 'loaded' || ageTopoMorphLookupData.length === 0) return messages;
+                    const ageStr = rowData["AGE_COLUMN"];
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!ageStr || !topography || !morphology || isNaN(parseInt(ageStr, 10)) || ageStr === "99" || ageStr === "999") return messages;
+                    const patientAge = parseInt(ageStr, 10);
+                    for (const combo of ageTopoMorphLookupData) {
+                        if (patientAge >= combo.ageMin && patientAge <= combo.ageMax &&
+                            topography === combo.topographyGroup &&
+                            morphology === combo.morphology) {
+                            messages.push(`RARE COMBINATION: Record ${idValue} (Age: ${patientAge}, Topo: ${topography}, Morph: ${morphology}) matches rare combination (Lookup: Age ${combo.ageMin}-${combo.ageMax}, Topo ${combo.topographyGroup}, Morph ${combo.morphology}).`);
+                            break;
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Rare Age-Topography Combination",
+                description: "Flags records with specific age and topography combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "AGE_COLUMN", "TOPOGRAPHY_COLUMN"],
+                requiresLookup: "ageTopography",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (ageTopographyFileStatus.status !== 'loaded' || ageTopographyLookupData.length === 0) return messages;
+                    const ageStr = rowData["AGE_COLUMN"];
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!ageStr || !topography || isNaN(parseInt(ageStr, 10)) || ageStr === "99" || ageStr === "999") return messages;
+                    const patientAge = parseInt(ageStr, 10);
+                    for (const combo of ageTopographyLookupData) {
+                        if (patientAge >= combo.ageMin && patientAge <= combo.ageMax && topography === combo.topography) {
+                            messages.push(`RARE COMBINATION: Record ${idValue} (Age: ${patientAge}, Topo: ${topography}) matches rare combination (Lookup: Age ${combo.ageMin}-${combo.ageMax}, Topo ${combo.topography}).`);
+                            break;
+                        }
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Rare Sex-Morphology-Behaviour Combination",
+                description: "Flags records with specific sex, morphology, and behaviour combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "SEX_COLUMN", "MORPHOLOGY_COLUMN", "BEHAVIOUR_COLUMN"],
+                requiresLookup: "sexMorphology",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (sexMorphologyFileStatus.status !== 'loaded' || sexMorphologyLookupData.size === 0) return messages;
+                    const sex = String(rowData["SEX_COLUMN"] || "").toUpperCase();
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const behaviour = String(rowData["BEHAVIOUR_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!sex || !morphology || !behaviour) return messages;
+                    const key = `${sex}_${morphology}_${behaviour}`;
+                    if (sexMorphologyLookupData.has(key)) {
+                        messages.push(`RARE COMBINATION: Record ${idValue} (Sex: ${sex}, Morph: ${morphology}, Behav: ${behaviour}) matches rare combination.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Rare Topography-Behaviour Combination",
+                description: "Flags records with specific topography group and behaviour combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "TOPOGRAPHY_COLUMN", "BEHAVIOUR_COLUMN"],
+                requiresLookup: "topographyBehaviour",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (topographyBehaviourFileStatus.status !== 'loaded' || topographyBehaviourLookupData.size === 0) return messages;
+                    const topographyFull = String(rowData["TOPOGRAPHY_COLUMN"] || "");
+                    const behaviour = String(rowData["BEHAVIOUR_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const topographyMainDigits = topographyFull.replace(/[^0-9]/g, '');
+                    const topographyGroupCompare = topographyMainDigits.substring(0, 2);
+                    if (!topographyGroupCompare || !behaviour) return messages;
+                    const key = `${topographyGroupCompare}_${behaviour}`;
+                    if (topographyBehaviourLookupData.has(key)) {
+                         messages.push(`RARE COMBINATION: Record ${idValue} (Topo: ${topographyFull} -> Group ${topographyGroupCompare}, Behav: ${behaviour}) matches rare combination (Lookup: TopoGrp ${topographyGroupCompare}, Behav ${behaviour}).`);
+                    }
+                    return messages;
+                }
+            },
+             {
+                name: "Rare Topography-Morphology Combination",
+                description: "Flags records with specific Topography and Morphology combinations identified as rare.",
+                standardInputColumns: [ID_COLUMN_KEY, "TOPOGRAPHY_COLUMN", "MORPHOLOGY_COLUMN"],
+                requiresLookup: "topoMorphRare",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (topoMorphRareFileStatus.status !== 'loaded' || topoMorphRareLookupData.size === 0) return messages;
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!topography || !morphology) return messages;
+                    const key = `${topography}_${morphology}`;
+                    if(topoMorphRareLookupData.has(key)){
+                        messages.push(`RARE COMBINATION: Record ${idValue} (Topo: ${topography}, Morph: ${morphology}) matches a known rare combination.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Query Basis-Morphology Combination",
+                description: "Flags records with specific Basis of Diagnosis and Morphology for review.",
+                standardInputColumns: [ID_COLUMN_KEY, "BASIS_DIAGNOSIS_COLUMN", "MORPHOLOGY_COLUMN"],
+                requiresLookup: "basisMorphologyQuery",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (basisMorphologyQueryFileStatus.status !== 'loaded' || basisMorphologyQueryLookupData.size === 0) return messages;
+                    const basis = String(rowData["BASIS_DIAGNOSIS_COLUMN"] || "");
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!basis || !morphology) return messages;
+                    const key = `${basis}_${morphology}`;
+                    if (basisMorphologyQueryLookupData.has(key)) {
+                        messages.push(`QUERY COMBINATION: Record ${idValue} (Basis: ${basis}, Morph: ${morphology}) requires review (Lookup: Basis ${basis}, Morph ${morphology}).`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Query Basis-Morphology-Topography Combination",
+                description: "Flags records with specific Basis of Diagnosis, Morphology, and Topography for review.",
+                standardInputColumns: [ID_COLUMN_KEY, "BASIS_DIAGNOSIS_COLUMN", "MORPHOLOGY_COLUMN", "TOPOGRAPHY_COLUMN"],
+                requiresLookup: "basisMorphoTopoQuery",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (basisMorphoTopoQueryFileStatus.status !== 'loaded' || basisMorphoTopoQueryLookupData.size === 0) return messages;
+                    const basis = String(rowData["BASIS_DIAGNOSIS_COLUMN"] || "");
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!basis || !morphology || !topography) return messages;
+                    const key = `${basis}_${morphology}_${topography}`;
+                    if (basisMorphoTopoQueryLookupData.has(key)) {
+                        messages.push(`QUERY COMBINATION: Record ${idValue} (Basis: ${basis}, Morph: ${morphology}, Topo: ${topography}) requires review.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Invalid Grade for Behaviour-Morphology",
+                description: "Flags records with invalid Grade for specific Behaviour and Morphology combinations.",
+                standardInputColumns: [ID_COLUMN_KEY, "GRADE_COLUMN", "BEHAVIOUR_COLUMN", "MORPHOLOGY_COLUMN"],
+                requiresLookup: "gradeInvalid",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (gradeInvalidFileStatus.status !== 'loaded' || gradeInvalidLookupData.size === 0) return messages;
+                    const grade = String(rowData["GRADE_COLUMN"] || "");
+                    const behaviour = String(rowData["BEHAVIOUR_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    const morphology = String(rowData["MORPHOLOGY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!grade || !behaviour || !morphology) return messages;
+                    const key = `${behaviour}_${morphology}_${grade}`;
+                    if (gradeInvalidLookupData.has(key)) {
+                        messages.push(`INVALID COMBINATION: Record ${idValue} (Grade: ${grade}, Behav: ${behaviour}, Morph: ${morphology}) is an invalid combination.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Invalid Sex-Topography Combination",
+                description: "Flags records with invalid Sex for specific Topography group combinations.",
+                standardInputColumns: [ID_COLUMN_KEY, "SEX_COLUMN", "TOPOGRAPHY_COLUMN"],
+                requiresLookup: "sexTopographyInvalid",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (sexTopographyInvalidFileStatus.status !== 'loaded' || sexTopographyInvalidLookupData.size === 0) return messages;
+                    const sex = String(rowData["SEX_COLUMN"] || "").toUpperCase();
+                    const topographyFull = String(rowData["TOPOGRAPHY_COLUMN"] || "");
+                    const topographyMainDigits = topographyFull.replace(/[^0-9]/g, '');
+                    const topographyGroupCompare = topographyMainDigits.substring(0, 2);
+
+                    if (!sex || !topographyGroupCompare) return messages;
+                    const key = `${sex}_${topographyGroupCompare}`;
+                    if (sexTopographyInvalidLookupData.has(key)) {
+                        messages.push(`INVALID COMBINATION: Record ${idValue} (Sex: ${sex}, Topo: ${topographyFull} -> Group ${topographyGroupCompare}) is an invalid combination.`);
+                    }
+                    return messages;
+                }
+            },
+            {
+                name: "Invalid Topography Code (from file)",
+                description: "Flags records with specific invalid Topography codes from a lookup file.",
+                standardInputColumns: [ID_COLUMN_KEY, "TOPOGRAPHY_COLUMN"],
+                requiresLookup: "topographyInvalid",
+                evaluate: function(rowData, idValue) {
+                    const messages = [];
+                    if (topographyInvalidFileStatus.status !== 'loaded' || topographyInvalidLookupData.size === 0) return messages;
+                    const topography = String(rowData["TOPOGRAPHY_COLUMN"] || "").replace(/[^0-9]/g, '');
+                    if (!topography) return messages;
+                    if (topographyInvalidLookupData.has(topography)) {
+                        messages.push(`INVALID CODE: Record ${idValue} has invalid Topography code '${topography}' (from file).`);
+                    }
+                    return messages;
+                }
+            }
+        ];
+
+        // --- Global State for Main CSV Data ---
+        let csvHeaders = [];
+        let csvData = [];
+        let originalUploadedFileName = 'data.csv';
+        let currentDelimiter = ',';
+        let rawCsvText = '';
+        let currentMode = 'file';
+        let currentDatePickerTarget = null;
+        let currentInputDateFormat = 'YYYYMMDD';
+        // let autoSelectKeywords = {};
+
+        // --- DOM Elements ---
+        const csvFileInput = document.getElementById('csvFileInput');
+        const csvDelimiterInput = document.getElementById('csvDelimiterInput');
+        const dateFormatSelector = document.getElementById('dateFormatSelector');
+        const singleEntryDateFormatSelector = document.getElementById('singleEntryDateFormatSelector');
+        const dataPreviewAndDelimiterSection = document.getElementById('dataPreviewAndDelimiterSection');
+        const dataPreviewTableContainer = document.getElementById('dataPreviewTableContainer');
+        const reloadWithDelimiterButton = document.getElementById('reloadWithDelimiterButton');
+        const columnMappingSection = document.getElementById('columnMappingSection');
+        const mappingContainer = document.getElementById('mappingContainer');
+        const rulesOverviewSection = document.getElementById('rulesOverviewSection');
+        const rulesListDiv = document.getElementById('rulesList');
+        const toggleRulesButton = document.getElementById('toggleRulesButton');
+        const toggleRulesText = document.getElementById('toggleRulesText');
+        const toggleRulesArrow = document.getElementById('toggleRulesArrow');
+        const actionButtons = document.getElementById('actionButtons');
+        const runChecksButton = document.getElementById('runChecksButton');
+        const downloadResultsButton = document.getElementById('downloadResultsButton');
+        const resetButton = document.getElementById('resetButton');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const resultsOutput = document.getElementById('resultsOutput');
+        const messageArea = document.getElementById('messageArea');
+        const modal = document.getElementById('infoModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeBtn = document.querySelector('.modal .close-button');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const spinnerCounter = document.getElementById('spinnerCounter');
+
+        const tabFileProcessing = document.getElementById('tabFileProcessing');
+        const tabSingleRecord = document.getElementById('tabSingleRecord');
+        const fileProcessingContent = document.getElementById('fileProcessingContent');
+        const singleRecordContent = document.getElementById('singleRecordContent');
+        const singleRecordForm = document.getElementById('singleRecordForm');
+        const runChecksSingleRecordButton = document.getElementById('runChecksSingleRecordButton');
+
+        const datePickerModal = document.getElementById('datePickerModal');
+        const datePickerYearSelect = document.getElementById('datePickerYear');
+        const datePickerMonthSelect = document.getElementById('datePickerMonth');
+        const datePickerDaySelect = document.getElementById('datePickerDay');
+        const datePickerTargetInputId = document.getElementById('datePickerTargetInputId');
+
+
+        // --- Event Listeners ---
+        csvFileInput.addEventListener('change', handleMainFileUpload);
+        reloadWithDelimiterButton.addEventListener('click', reloadDataWithNewSettings);
+        dateFormatSelector.addEventListener('change', reloadDataWithNewSettings);
+        runChecksButton.addEventListener('click', runQualityChecksOnFile);
+        if(runChecksSingleRecordButton) runChecksSingleRecordButton.addEventListener('click', runChecksOnSingleRecord);
+        downloadResultsButton.addEventListener('click', downloadResultsCSV);
+        resetButton.addEventListener('click', resetApplication);
+
+        tabFileProcessing.addEventListener('click', () => switchTab('file'));
+        tabSingleRecord.addEventListener('click', () => switchTab('single'));
+        toggleRulesButton.addEventListener('click', toggleRulesVisibility);
+
+
+        if(closeBtn) closeBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', function(event) {
+            if (event.target == modal) closeModal();
+            if (event.target == datePickerModal) closeDatePickerModal();
+        });
+
+        // --- Tab Switching ---
+        function switchTab(mode) {
+            currentMode = mode;
+            resultsOutput.innerHTML = '';
+            resultsSummary.innerHTML = '';
+            resultsSection.classList.add('hidden');
+            downloadResultsButton.classList.add('hidden');
+
+
+            if (mode === 'file') {
+                tabFileProcessing.classList.add('active');
+                tabSingleRecord.classList.remove('active');
+                fileProcessingContent.classList.remove('hidden');
+                singleRecordContent.classList.add('hidden');
+
+                if (rawCsvText) dataPreviewAndDelimiterSection.classList.remove('hidden'); else dataPreviewAndDelimiterSection.classList.add('hidden');
+                if (csvHeaders.length > 0) columnMappingSection.classList.remove('hidden'); else columnMappingSection.classList.add('hidden');
+                if (csvData.length > 0 || rawCsvText) actionButtons.classList.remove('hidden'); else actionButtons.classList.add('hidden');
+                runChecksButton.classList.remove('hidden');
+
+            } else {
+                tabSingleRecord.classList.add('active');
+                tabFileProcessing.classList.remove('active');
+                singleRecordContent.classList.remove('hidden');
+                fileProcessingContent.classList.add('hidden');
+
+                dataPreviewAndDelimiterSection.classList.add('hidden');
+                columnMappingSection.classList.add('hidden');
+                actionButtons.classList.add('hidden');
+                runChecksButton.classList.add('hidden');
+                if (rulesOverviewSection) rulesOverviewSection.classList.remove('hidden');
+            }
+
+            populateRulesOverview();
+        }
+
+        function toggleRulesVisibility() {
+            const isHidden = rulesListDiv.classList.toggle('hidden');
+            if (isHidden) {
+                toggleRulesText.textContent = 'Show Rules';
+                toggleRulesArrow.classList.remove('up');
+                toggleRulesArrow.classList.add('down');
+            } else {
+                toggleRulesText.textContent = 'Hide Rules';
+                toggleRulesArrow.classList.remove('down');
+                toggleRulesArrow.classList.add('up');
+            }
+        }
+
+
+        // --- Helper Functions ---
+        function isValidYYYYMMDD(dateString) {
+            if (!dateString || typeof dateString !== 'string') return false;
+            const datePattern = /^\d{4}(\d{2}|00|99)(\d{2}|00|99)$/;
+            if (!datePattern.test(dateString)) return false;
+
+            const year = parseInt(dateString.substring(0, 4), 10);
+            const monthStr = dateString.substring(4, 6);
+            const dayStr = dateString.substring(6, 8);
+
+            if (year < 1800 || year > new Date().getFullYear() + 10) return false;
+
+            const month = parseInt(monthStr, 10);
+            if (monthStr !== "00" && monthStr !== "99") {
+                if (month < 1 || month > 12) return false;
+            } else {
+                if (dayStr !== "00" && dayStr !== "99") return false;
+            }
+
+            const day = parseInt(dayStr, 10);
+            if (dayStr !== "00" && dayStr !== "99") {
+                if (day < 1 || day > 31) return false;
+                if (monthStr !== "00" && monthStr !== "99") {
+                    const tempDate = new Date(year, month - 1, day);
+                    if (!(tempDate.getFullYear() === year && tempDate.getMonth() === month - 1 && tempDate.getDate() === day)) {
+                        return false;
+                    }
+                }
+            } else {
+                 if (monthStr !== "00" && monthStr !== "99") {
+                    // Valid:<y_bin_46>MM00 or<y_bin_46>MM99
+                 }
+            }
+            return true;
+        }
+
+        function parseYYYYMMDD(dateString) {
+            if (!isValidYYYYMMDD(dateString)) return null;
+            const year = parseInt(dateString.substring(0, 4), 10);
+            const monthStr = dateString.substring(4, 6);
+            const dayStr = dateString.substring(6, 8);
+            const parseMonth = (monthStr === "00" || monthStr === "99") ? 1 : parseInt(monthStr, 10);
+            const parseDay = (dayStr === "00" || dayStr === "99") ? 1 : parseInt(dayStr, 10);
+            return new Date(year, parseMonth - 1, parseDay);
+        }
+        function parseAgeRange(ageRangeStr) {
+            if (!ageRangeStr || typeof ageRangeStr !== 'string') return { ageMin: -1, ageMax: -1 };
+            const parts = ageRangeStr.split('-');
+            if (parts.length === 2) {
+                const min = parseInt(parts[0].trim(), 10);
+                const max = parseInt(parts[1].trim(), 10);
+                if (!isNaN(min) && !isNaN(max)) {
+                    return { ageMin: min, ageMax: max };
+                }
+            } else if (parts.length === 1) {
+                const age = parseInt(parts[0].trim(), 10);
+                 if (!isNaN(age)) {
+                    return { ageMin: age, ageMax: age };
+                }
+            }
+            console.warn(`Could not parse age range: ${ageRangeStr}`);
+            return { ageMin: -1, ageMax: -1 };
+        }
+
+        function showMessage(type, text) {
+            let bgColor, textColor, borderColor;
+            switch(type) {
+                case 'error': bgColor = 'bg-red-100'; textColor = 'text-red-700'; borderColor = 'border-red-400'; break;
+                case 'success': bgColor = 'bg-green-100'; textColor = 'text-green-700'; borderColor = 'border-green-400'; break;
+                default: bgColor = 'bg-blue-100'; textColor = 'text-blue-700'; borderColor = 'border-blue-400';
+            }
+            messageArea.innerHTML = `<div class="${bgColor} ${borderColor} ${textColor} border px-4 py-3 rounded relative" role="alert">
+                                        <strong class="font-bold">${type.toUpperCase()}: </strong>
+                                        <span class="block sm:inline">${text}</span></div>`;
+            messageArea.classList.remove('hidden');
+            setTimeout(() => { messageArea.innerHTML = ''; messageArea.classList.add('hidden'); }, 7000);
+        }
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            if (modal) modal.style.display = "block";
+         }
+        function closeModal() {
+            if (modal) modal.style.display = "none";
+        }
+
+        // --- Date Picker Modal Functions ---
+        function openDatePickerModal(targetInputId) {
+            currentDatePickerTarget = document.getElementById(targetInputId);
+            if (!currentDatePickerTarget) return;
+
+            const currentDateValue = currentDatePickerTarget.value;
+            const currentYear = new Date().getFullYear();
+            let selectedYear = currentYear;
+            let selectedMonth = new Date().getMonth() + 1;
+            let selectedDay = new Date().getDate();
+
+            const currentDateFormatForSingleEntry = singleEntryDateFormatSelector.value;
+            const normalizedDateForPicker = normalizeDateString(currentDateValue, currentDateFormatForSingleEntry);
+
+
+            if (isValidYYYYMMDD(normalizedDateForPicker)) {
+                 selectedYear = parseInt(normalizedDateForPicker.substring(0,4), 10);
+                 const monthPart = normalizedDateForPicker.substring(4,6);
+                 const dayPart = normalizedDateForPicker.substring(6,8);
+                 if (monthPart !== "00" && monthPart !== "99") selectedMonth = parseInt(monthPart, 10);
+                 if (dayPart !== "00" && dayPart !== "99") selectedDay = parseInt(dayPart, 10);
+            }
+
+            datePickerYearSelect.innerHTML = '';
+            for (let y = currentYear + 5; y >= 1900; y--) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                if (y === selectedYear) option.selected = true;
+                datePickerYearSelect.appendChild(option);
+            }
+
+            datePickerMonthSelect.innerHTML = '';
+            for (let m = 1; m <= 12; m++) {
+                const option = document.createElement('option');
+                option.value = m;
+                option.textContent = new Date(2000, m-1, 1).toLocaleString('default', { month: 'long' });
+                if (m === selectedMonth) option.selected = true;
+                datePickerMonthSelect.appendChild(option);
+            }
+
+            populateDatePickerDays();
+            datePickerYearSelect.onchange = populateDatePickerDays;
+            datePickerMonthSelect.onchange = populateDatePickerDays;
+            datePickerDaySelect.value = selectedDay;
+
+            datePickerModal.style.display = "block";
+        }
+
+        function populateDatePickerDays() {
+            const year = parseInt(datePickerYearSelect.value);
+            const month = parseInt(datePickerMonthSelect.value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            const currentDayValue = datePickerDaySelect.value;
+            datePickerDaySelect.innerHTML = '';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const option = document.createElement('option');
+                option.value = d;
+                option.textContent = d;
+                datePickerDaySelect.appendChild(option);
+            }
+            if (parseInt(currentDayValue) <= daysInMonth) {
+                 datePickerDaySelect.value = currentDayValue;
+            } else {
+                 datePickerDaySelect.value = "1";
+            }
+        }
+
+
+        function closeDatePickerModal() {
+            datePickerModal.style.display = "none";
+            currentDatePickerTarget = null;
+        }
+
+        function setDateFromPicker() {
+            if (!currentDatePickerTarget) return;
+            const year = datePickerYearSelect.value;
+            const month = String(datePickerMonthSelect.value).padStart(2, '0');
+            const day = String(datePickerDaySelect.value).padStart(2, '0');
+            currentDatePickerTarget.value = `${year}${month}${day}`;
+            currentDatePickerTarget.dispatchEvent(new Event('input', { bubbles: true }));
+            closeDatePickerModal();
+        }
+
+
+        // --- File Handling and Parsing ---
+        function processUploadedFile(fileText, delimiter, inputDateFormat) {
+            try {
+                parseMainCSV(fileText, delimiter, inputDateFormat);
+                if (csvHeaders.length > 0) {
+                    dataPreviewAndDelimiterSection.classList.remove('hidden');
+                    populatePreviewTable();
+                    columnMappingSection.classList.remove('hidden');
+                    rulesOverviewSection.classList.remove('hidden');
+                    actionButtons.classList.remove('hidden');
+                    runChecksButton.classList.remove('hidden');
+                    populateMappingUI();
+                    populateRulesOverview();
+                    resultsSection.classList.add('hidden');
+                    resultsOutput.innerHTML = '';
+                    downloadResultsButton.classList.add('hidden');
+                    showMessage('success', `CSV file "${originalUploadedFileName}" loaded with delimiter "${delimiter === '\t' ? '\\t' : delimiter}" and date format "${inputDateFormat}". Please map columns.`);
+                } else {
+                    showMessage('error', 'Could not parse headers from main CSV. Is it empty or malformed?');
+                    csvFileInput.value = '';
+                    dataPreviewAndDelimiterSection.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error("Error processing main CSV:", error);
+                showMessage('error', `Error processing main CSV: ${error.message}.`);
+                csvFileInput.value = '';
+                dataPreviewAndDelimiterSection.classList.add('hidden');
+            }
+        }
+
+        function autoDetectDelimiter(text, candidates = [',', '\t', ';', '|']) {
+            const lines = text.split(/\r\n|\n/).slice(0, 10);
+            if (lines.length === 0) return ',';
+
+            let bestDelimiter = ',';
+            let maxConsistentCols = 0;
+
+            for (const delimiter of candidates) {
+                let firstLineCols = -1;
+                let consistent = true;
+                let currentConsistentCols = 0;
+
+                for (let i = 0; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+
+                    const cols = lines[i].split(delimiter).length;
+                    if (cols <= 1 && delimiter !== '\t' && lines[i].length > 5) {
+                         consistent = false;
+                         break;
+                    }
+
+                    if (i === 0) {
+                        firstLineCols = cols;
+                    } else if (cols !== firstLineCols) {
+                        consistent = false;
+                        break;
+                    }
+                }
+                if (consistent && firstLineCols > 1) {
+                    if (firstLineCols > maxConsistentCols) {
+                         maxConsistentCols = firstLineCols;
+                         bestDelimiter = delimiter;
+                    } else if (firstLineCols === maxConsistentCols) {
+                        if (candidates.indexOf(delimiter) < candidates.indexOf(bestDelimiter)) {
+                            bestDelimiter = delimiter;
+                        }
+                    }
+                }
+            }
+            // console.log("Auto-detected delimiter:", bestDelimiter === '\t' ? '\\t' : bestDelimiter);
+            return bestDelimiter;
+        }
+
+
+        function handleMainFileUpload(event) {
+            csvHeaders = [];
+            csvData = [];
+            rawCsvText = '';
+            mappingContainer.innerHTML = '';
+            resultsOutput.innerHTML = '';
+            dataPreviewTableContainer.innerHTML = '';
+            dataPreviewAndDelimiterSection.classList.add('hidden');
+            columnMappingSection.classList.add('hidden');
+            actionButtons.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            downloadResultsButton.classList.add('hidden');
+
+            const file = event.target.files[0];
+            if (!file) { showMessage('error', 'No main data file selected.'); return; }
+            originalUploadedFileName = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                rawCsvText = e.target.result;
+
+                currentDelimiter = autoDetectDelimiter(rawCsvText);
+                csvDelimiterInput.value = currentDelimiter === '\t' ? '\\t' : currentDelimiter;
+                currentInputDateFormat = dateFormatSelector.value;
+
+                processUploadedFile(rawCsvText, currentDelimiter, currentInputDateFormat);
+            };
+            reader.onerror = () => { showMessage('error', `Error reading main file: ${reader.error}`); csvFileInput.value = ''; };
+            reader.readAsText(file);
+        }
+
+        function reloadDataWithNewSettings() {
+            if (!rawCsvText) {
+                showMessage('error', 'No file data to reload. Please upload a file first.');
+                return;
+            }
+            let delimiterInputVal = csvDelimiterInput.value;
+            if (delimiterInputVal === '\\t') {
+                currentDelimiter = '\t';
+            } else if (!delimiterInputVal) {
+                currentDelimiter = ',';
+            } else {
+                 currentDelimiter = delimiterInputVal[0];
+            }
+            currentInputDateFormat = dateFormatSelector.value;
+
+            csvHeaders = [];
+            csvData = [];
+            mappingContainer.innerHTML = '';
+            resultsOutput.innerHTML = '';
+            resultsSection.classList.add('hidden');
+            downloadResultsButton.classList.add('hidden');
+
+            showMessage('info', `Attempting to reload data with delimiter: "${currentDelimiter === '\t' ? '\\t' : currentDelimiter}" and date format: "${currentInputDateFormat}"`);
+            processUploadedFile(rawCsvText, currentDelimiter, currentInputDateFormat);
+        }
+
+        function populatePreviewTable() {
+            dataPreviewTableContainer.innerHTML = '';
+            if (csvHeaders.length === 0) return;
+
+            const table = document.createElement('table');
+            table.className = 'preview-table';
+
+            const thead = table.createTHead();
+            const headerRow = thead.insertRow();
+            csvHeaders.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            const numRowsToPreview = Math.min(100, csvData.length);
+            for (let i = 0; i < numRowsToPreview; i++) {
+                const dataRow = tbody.insertRow();
+                csvHeaders.forEach(header => {
+                    const cell = dataRow.insertCell();
+                    cell.textContent = csvData[i][header] || '';
+                });
+            }
+            dataPreviewTableContainer.appendChild(table);
+        }
+
+        async function loadSingleLookupFile(lookupType, fileStatusObj, parserFunction, dataTargetArraySetter) {
+            fileStatusObj.status = 'loading';
+            fileStatusObj.error = null;
+            populateRulesOverview();
+
+            try {
+                const response = await fetch(fileStatusObj.fileName);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} for ${fileStatusObj.fileName}`);
+                }
+                const text = await response.text();
+                if (typeof text !== 'string') {
+                    throw new Error(`Received non-string content from ${fileStatusObj.fileName}`);
+                }
+                const parsedData = parserFunction(text, fileStatusObj.fileName);
+
+                dataTargetArraySetter(parsedData);
+
+                fileStatusObj.status = 'loaded';
+                fileStatusObj.error = null;
+            } catch (error) {
+                console.error(`Error loading or parsing ${lookupType} lookup file "${fileStatusObj.fileName}":`, error);
+                fileStatusObj.status = 'failed';
+                fileStatusObj.error = error.message;
+                const defaultEmpty = (parserFunction === parseDictionaryTSV || lookupType.includes("Age-")) ? [] : new Set();
+                dataTargetArraySetter(defaultEmpty);
+            } finally {
+                populateRulesOverview();
+                if (currentMode === 'single') {
+                    populateSingleRecordForm();
+                }
+            }
+        }
+
+        async function loadAutoSelectKeywords() {
+            autoSelectKeywordsFileStatus.status = 'loading';
+            try {
+                const response = await fetch(autoSelectKeywordsFileStatus.fileName);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} for ${autoSelectKeywordsFileStatus.fileName}`);
+                }
+                const text = await response.text();
+                autoSelectKeywords = JSON.parse(text);
+                autoSelectKeywordsFileStatus.status = 'loaded';
+                console.log("External auto-select keywords loaded successfully.");
+            } catch (error) {
+                console.warn(`Could not load or parse external auto-select keywords from ${autoSelectKeywordsFileStatus.fileName}. Using defaults. Error:`, error.message);
+                autoSelectKeywordsFileStatus.status = 'failed';
+                autoSelectKeywordsFileStatus.error = error.message;
+            }
+        }
+
+
+        async function loadExternalLookups() {
+            await Promise.all([
+                loadAutoSelectKeywords(),
+                loadSingleLookupFile('Age-Morphology', ageMorphologyFileStatus, parseAgeMorphologyLookupCSV, (data) => ageMorphologyLookupData = data),
+                loadSingleLookupFile('Age-Topo-Morph', ageTopoMorphFileStatus, parseAgeTopoMorphLookupCSV, (data) => ageTopoMorphLookupData = data),
+                loadSingleLookupFile('Age-Topography', ageTopographyFileStatus, parseAgeTopographyLookupCSV, (data) => ageTopographyLookupData = data),
+                loadSingleLookupFile('Sex-Morphology', sexMorphologyFileStatus, parseSexMorphologyLookupCSV, (data) => sexMorphologyLookupData = data),
+                loadSingleLookupFile('Topo-Behaviour', topographyBehaviourFileStatus, parseTopographyBehaviourLookupCSV, (data) => topographyBehaviourLookupData = data),
+                loadSingleLookupFile('Basis-Morphology-Query', basisMorphologyQueryFileStatus, parseBasisMorphologyQueryCSV, (data) => basisMorphologyQueryLookupData = data),
+                loadSingleLookupFile('Basis-Morpho-Topo-Query', basisMorphoTopoQueryFileStatus, parseBasisMorphologyTopographyQueryCSV, (data) => basisMorphoTopoQueryLookupData = data),
+                loadSingleLookupFile('Grade-Invalid', gradeInvalidFileStatus, parseGradeInvalidCSV, (data) => gradeInvalidLookupData = data),
+                loadSingleLookupFile('Sex-Topography-Invalid', sexTopographyInvalidFileStatus, parseSexTopographyInvalidCSV, (data) => sexTopographyInvalidLookupData = data),
+                loadSingleLookupFile('Topography-Invalid', topographyInvalidFileStatus, parseTopographyInvalidCSV, (data) => topographyInvalidLookupData = data),
+                loadSingleLookupFile('Topo-Morph-Rare', topoMorphRareFileStatus, parseTopographyMorphologyRareCSV, (data) => topoMorphRareLookupData = data),
+                loadSingleLookupFile('Basis-Dictionary', basisFileStatus, parseDictionaryTSV, (data) => basisDictionaryData = data),
+                loadSingleLookupFile('Behaviour-Dictionary', behaviourFileStatus, parseDictionaryTSV, (data) => behaviourDictionaryData = data),
+                loadSingleLookupFile('Grade-Dictionary', gradeFileStatus, parseDictionaryTSV, (data) => gradeDictionaryData = data),
+                loadSingleLookupFile('Morphology4-Dictionary', morphology4FileStatus, parseDictionaryTSV, (data) => morphology4DictionaryData = data),
+                loadSingleLookupFile('Sex-Dictionary', sexFileStatus, parseDictionaryTSV, (data) => sexDictionaryData = data),
+                loadSingleLookupFile('Topography-Dictionary', topographyFileStatus, parseDictionaryTSV, (data) => topographyDictionaryData = data),
+                loadSingleLookupFile('VitalStatus-Dictionary', vitalStatusFileStatus, parseDictionaryTSV, (data) => vitalStatusDictionaryData = data)
+            ]);
+
+            [ageMorphologyFileStatus, ageTopoMorphFileStatus, ageTopographyFileStatus, sexMorphologyFileStatus, topographyBehaviourFileStatus, basisMorphologyQueryFileStatus, basisMorphoTopoQueryFileStatus, gradeInvalidFileStatus, sexTopographyInvalidFileStatus, topographyInvalidFileStatus, topoMorphRareFileStatus, basisFileStatus, behaviourFileStatus, gradeFileStatus, morphology4FileStatus, sexFileStatus, topographyFileStatus, vitalStatusFileStatus].forEach(statusObj => {
+                if(statusObj.status === 'failed'){
+                    showMessage('error', `Failed to load ${statusObj.fileName}: ${statusObj.error}. Rules or dropdowns depending on it may not work.`);
+                }
+            });
+        }
+
+        function normalizeDateString(dateStr, inputFormatParam) {
+            const inputFormat = String(inputFormatParam || 'YYYYMMDD').trim();
+            if (!dateStr || typeof dateStr !== 'string') {
+                // console.log(`normalizeDateString: Input '${dateStr}' is not a string or is empty, returning as is.`);
+                return dateStr;
+            }
+            let cleanedDateStr = dateStr.trim();
+
+            if (/^\d+\.0+$/.test(cleanedDateStr)) {
+                cleanedDateStr = cleanedDateStr.substring(0, cleanedDateStr.indexOf('.'));
+            }
+            cleanedDateStr = cleanedDateStr.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, '-');
+
+            // console.log(`normalizeDateString: Attempting to normalize '${cleanedDateStr}' with format '${inputFormat}'`);
+
+            let year = '', month = '', day = '';
+            let parts;
+
+            const padUnknown = (s) => {
+                if (!s) return '00';
+                const s_trimmed = String(s).trim();
+                if (s_trimmed === "00" || s_trimmed === "99") return s_trimmed;
+                if (s_trimmed.length === 1 && !isNaN(parseInt(s_trimmed))) return '0' + s_trimmed;
+                return s_trimmed.padStart(2, '0');
+            };
+
+            try {
+                switch (inputFormat) {
+                    case 'YYYYMMDD':
+                        if (/^\d{4}(\d{2}|00|99)(\d{2}|00|99)$/.test(cleanedDateStr)) return cleanedDateStr;
+                        break;
+                    case 'DDMMYYYY':
+                         parts = cleanedDateStr.match(/^(\d{1,2}|00|99)(\d{1,2}|00|99)(\d{4})$/);
+                         if (parts) {
+                            day = parts[1]; month = parts[2]; year = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                    case 'DD/MM/YYYY':
+                        parts = cleanedDateStr.match(/^(\d{1,2}|00|99)\/(\d{1,2}|00|99)\/(\d{4})$/);
+                        if (parts) {
+                            day = parts[1]; month = parts[2]; year = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                    case 'YYYY-MM-DD':
+                        parts = cleanedDateStr.match(/^(\d{4})-(\d{1,2}|00|99)-(\d{1,2}|00|99)$/);
+                        if (parts) {
+                            year = parts[1]; month = parts[2]; day = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                    case 'MM-DD-YYYY':
+                         parts = cleanedDateStr.match(/^(\d{1,2}|00|99)-(\d{1,2}|00|99)-(\d{4})$/);
+                         if (parts) {
+                            month = parts[1]; day = parts[2]; year = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                    case 'YYYY/MM/DD':
+                        parts = cleanedDateStr.match(/^(\d{4})\/(\d{1,2}|00|99)\/(\d{1,2}|00|99)$/);
+                        if (parts) {
+                            year = parts[1]; month = parts[2]; day = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                    case 'DD-MM-YYYY':
+                        parts = cleanedDateStr.match(/^(\d{1,2}|00|99)-(\d{1,2}|00|99)-(\d{4})$/);
+                        if (parts) {
+                            day = parts[1]; month = parts[2]; year = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                     case 'MM/DD/YYYY':
+                        parts = cleanedDateStr.match(/^(\d{1,2}|00|99)\/(\d{1,2}|00|99)\/(\d{4})$/);
+                        if (parts) {
+                            month = parts[1]; day = parts[2]; year = parts[3];
+                            return `${year}${padUnknown(month)}${padUnknown(day)}`;
+                        }
+                        break;
+                }
+            } catch (e) {
+                console.warn(`Could not normalize date string "${dateStr}" (cleaned: "${cleanedDateStr}") with format "${inputFormat}":`, e);
+                return cleanedDateStr;
+            }
+            if (/^\d{4}(\d{2}|00|99)(\d{2}|00|99)$/.test(cleanedDateStr)) {
+                return cleanedDateStr;
+            }
+            return dateStr;
+        }
+
+
+        function parseMainCSV(text, delimiter = ',', inputDateFormat = 'YYYYMMDD') { // inputDateFormat is NOT used here, but in runQualityChecksOnFile
+            const lines = text.trim().split(/\r\n|\n/);
+            if (lines.length === 0) { csvHeaders = []; csvData = []; return; }
+            const headerLine = lines[0];
+            csvHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+            if(csvHeaders.length === 0 || (csvHeaders.length === 1 && csvHeaders[0] === '')) {
+                throw new Error("No valid headers found in main CSV with the specified delimiter.");
+            }
+            csvData = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = [];
+                let currentVal = '';
+                let inQuotes = false;
+                for (let char of lines[i]) {
+                    if (char === '"' && (lines[i][lines[i].indexOf(char)-1] !== '\\')) {
+                        inQuotes = !inQuotes;
+                    } else if (char === delimiter && !inQuotes) {
+                        let valToPush = currentVal.trim().replace(/^"|"$/g, '');
+                        values.push(valToPush);
+                        currentVal = '';
+                    } else {
+                        currentVal += char;
+                    }
+                }
+                let lastVal = currentVal.trim().replace(/^"|"$/g, '');
+                values.push(lastVal);
+
+                const rowObject = {};
+                csvHeaders.forEach((header, index) => {
+                    let cellValue = (index < values.length) ? (values[index] || '') : '';
+
+                    if (/^\d+\.0+$/.test(cellValue)) {
+                        cellValue = cellValue.substring(0, cellValue.indexOf('.'));
+                    }
+                    rowObject[header] = cellValue;
+                });
+                csvData.push(rowObject);
+
+                if (values.length !== csvHeaders.length) {
+                    console.warn(`Row ${i+1} has ${values.length} columns, header has ${csvHeaders.length}. Padding with empty strings. Delimiter: '${delimiter}'. Line: ${lines[i]}`);
+                }
+            }
+        }
+
+        function parseLookupCSV(text, expectedHeaders, fileNameForContext = "lookup.csv") {
+            const lines = text.trim().split(/\r\n|\n/);
+            if (lines.length < 1) {console.warn(`Empty lookup file: ${fileNameForContext}`); return []; }
+            if (lines.length === 1 && lines[0].trim() === "") { console.warn(`Empty lookup file (header only?): ${fileNameForContext}`); return [];}
+
+            const headerLine = lines[0];
+            const lookupHeaders = headerLine.split(',').map(h => ({ original: h.trim().replace(/^"|"$/g, ''), lower: h.trim().replace(/^"|"$/g, '').toLowerCase() }));
+
+            for(const expectedHeader of expectedHeaders) {
+                if (!lookupHeaders.some(lh => lh.lower === expectedHeader.toLowerCase())) {
+                    throw new Error(`Missing expected header "${expectedHeader}" (case-insensitive) in lookup CSV: ${fileNameForContext}. Found headers: ${lookupHeaders.map(h=>h.original).join(', ')}`);
+                }
+            }
+
+            const dataArray = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const rowObject = {};
+                const numValuesToRead = Math.min(values.length, lookupHeaders.length);
+
+                expectedHeaders.forEach(expectedHeaderJSKey => {
+                    const foundHeader = lookupHeaders.find(lh => lh.lower === expectedHeaderJSKey.toLowerCase());
+                    if (foundHeader) {
+                        const headerIndex = lookupHeaders.indexOf(foundHeader);
+                        if (headerIndex < numValuesToRead) {
+                           rowObject[expectedHeaderJSKey] = values[headerIndex] || '';
+                        } else {
+                           rowObject[expectedHeaderJSKey] = '';
+                        }
+                    }
+                });
+                dataArray.push(rowObject);
+            }
+            return dataArray;
+        }
+
+        function parseDictionaryTSV(text, fileNameForContext = "dictionary.tsv") {
+            const lines = text.trim().split(/\r\n|\n/);
+            const data = [];
+            if (lines.length === 0 || (lines.length === 1 && lines[0].trim() === "")) {
+                console.warn(`Empty dictionary file encountered: ${fileNameForContext}`);
+                return data;
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                const originalLine = lines[i];
+                if (originalLine.trim() === '') continue;
+
+                let values = originalLine.split('\t');
+                let parsedWithFallback = false;
+
+                if (values.length === 1 && originalLine.includes(' ')) {
+                    const spaceSplitValues = originalLine.trim().split(/\s+/);
+                    if (spaceSplitValues.length >= 2) {
+                        const potentialCode = spaceSplitValues[0];
+                        const potentialLabel = spaceSplitValues.slice(1).join(' ');
+                        if (potentialCode && potentialLabel && potentialCode.length < 10) {
+                            console.warn(`Dictionary row ${i + 1} in ${fileNameForContext} (Line: "${originalLine}"): No tab found, attempting split by spaces. Parsed as Code: "${potentialCode}", Label: "${potentialLabel}"`);
+                            values = [potentialCode, potentialLabel];
+                            parsedWithFallback = true;
+                        }
+                    }
+                }
+
+                if (values.length >= 2) {
+                    const code = (values[0] || "").trim();
+                    const label = (values[1] || "").trim();
+                    if (code) {
+                        data.push({ code, label });
+                    } else if (!parsedWithFallback) {
+                         console.warn(`Skipping dictionary row ${i + 1} in ${fileNameForContext}: Code is empty after parsing. Line: "${originalLine}"`);
+                    }
+                } else if (!parsedWithFallback) {
+                    console.warn(`Skipping dictionary row ${i + 1} in ${fileNameForContext}: insufficient columns after attempting tab. Expected at least 2 parts. Got ${values.length}. Line content: "${originalLine}"`);
+                }
+            }
+            return data;
+        }
+
+
+        function parseAgeMorphologyLookupCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Age", "Morphology"], fileName);
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseAgeMorphologyLookupCSV for ${fileName}: rawData is NOT an array.`, rawData); return []; }
+            return rawData.map(item => {
+                if (typeof item !== 'object' || item === null) { console.warn(`parseAgeMorphologyLookupCSV for ${fileName}: Skipping invalid item:`, item); return null; }
+                const ageRange = parseAgeRange(item.Age);
+                return {
+                    ageMin: ageRange.ageMin,
+                    ageMax: ageRange.ageMax,
+                    morphology: String(item.Morphology || "").replace(/[^0-9]/g, '')
+                };
+            }).filter(item => item && item.ageMin !== -1 && item.morphology);
+        }
+        function parseAgeTopoMorphLookupCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Age", "Morphology", "TopographyGroup"], fileName);
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseAgeTopoMorphLookupCSV for ${fileName}: rawData is NOT an array.`, rawData); return []; }
+             return rawData.map(item => {
+                if (typeof item !== 'object' || item === null) { console.warn(`parseAgeTopoMorphLookupCSV for ${fileName}: Skipping invalid item:`, item); return null; }
+                const ageRange = parseAgeRange(item.Age);
+                return {
+                    ageMin: ageRange.ageMin,
+                    ageMax: ageRange.ageMax,
+                    morphology: String(item.Morphology || "").replace(/[^0-9]/g, ''),
+                    topographyGroup: String(item.TopographyGroup || "").replace(/[^0-9]/g, '')
+                };
+            }).filter(item => item && item.ageMin !== -1 && item.morphology && item.topographyGroup);
+        }
+        function parseAgeTopographyLookupCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Age", "Topography"], fileName);
+             if (!Array.isArray(rawData)) {
+                console.error(`CRITICAL ERROR in parseAgeTopographyLookupCSV for ${fileName}: rawData is NOT an array. Type:`, typeof rawData, "Value:", rawData);
+                return [];
+            }
+            return rawData.map(item => {
+                if (typeof item !== 'object' || item === null) {
+                    console.warn(`parseAgeTopographyLookupCSV for ${fileName}: Skipping invalid item in rawData:`, item);
+                    return null;
+                }
+                const ageRange = parseAgeRange(item.Age);
+                return {
+                    ageMin: ageRange.ageMin,
+                    ageMax: ageRange.ageMax,
+                    topography: String(item.Topography || "").replace(/[^0-9]/g, '')
+                };
+            }).filter(item => item && item.ageMin !== -1 && item.topography);
+        }
+        function parseSexMorphologyLookupCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Sex", "Morphology", "Behaviour"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseSexMorphologyLookupCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const sex = String(item.Sex || "").toUpperCase();
+                const morphology = String(item.Morphology || "").replace(/[^0-9]/g, '');
+                const behaviour = String(item.Behaviour || "").replace(/[^0-9]/g, '');
+                if (sex && morphology && behaviour) lookupSet.add(`${sex}_${morphology}_${behaviour}`);
+            });
+            return lookupSet;
+        }
+        function parseTopographyBehaviourLookupCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["TopographyGroup", "Behaviour"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseTopographyBehaviourLookupCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const tg = String(item.TopographyGroup || "").replace(/[^0-9]/g, '').substring(0,2);
+                const beh = String(item.Behaviour || "").replace(/[^0-9]/g, '');
+                if (tg && beh) lookupSet.add(`${tg}_${beh}`);
+            });
+            return lookupSet;
+        }
+        function parseBasisMorphologyQueryCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["BasisDiagnosis", "Morphology"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseBasisMorphologyQueryCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const basis = String(item.BasisDiagnosis || "");
+                const morph = String(item.Morphology || "").replace(/[^0-9]/g, '');
+                if (basis && morph) lookupSet.add(`${basis}_${morph}`);
+            });
+            return lookupSet;
+        }
+        function parseBasisMorphologyTopographyQueryCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["BasisDiagnosis", "Morphology", "Topography"], fileName);
+             const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseBasisMorphologyTopographyQueryCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const basis = String(item.BasisDiagnosis || "");
+                const morph = String(item.Morphology || "").replace(/[^0-9]/g, '');
+                const topo = String(item.Topography || "").replace(/[^0-9]/g, '');
+                if (basis && morph && topo) lookupSet.add(`${basis}_${morph}_${topo}`);
+            });
+            return lookupSet;
+        }
+        function parseGradeInvalidCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Behaviour", "Morphology", "Grade"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseGradeInvalidCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const behav = String(item.Behaviour || "").replace(/[^0-9]/g, '');
+                const morph = String(item.Morphology || "").replace(/[^0-9]/g, '');
+                const grade = String(item.Grade || "");
+                if (behav && morph && grade) lookupSet.add(`${behav}_${morph}_${grade}`);
+            });
+            return lookupSet;
+        }
+        function parseSexTopographyInvalidCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Sex", "TopographyGroup"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseSexTopographyInvalidCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const sex = String(item.Sex || "").toUpperCase();
+                const tg = String(item.TopographyGroup || "").replace(/[^0-9]/g, '').substring(0,2);
+                if (sex && tg) lookupSet.add(`${sex}_${tg}`);
+            });
+            return lookupSet;
+        }
+        function parseTopographyInvalidCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Topography"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseTopographyInvalidCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const topo = String(item.Topography || "").replace(/[^0-9]/g, '');
+                if (topo) lookupSet.add(topo);
+            });
+            return lookupSet;
+        }
+        function parseTopographyMorphologyRareCSV(text, fileName) {
+            const rawData = parseLookupCSV(text, ["Topography", "Morphology"], fileName);
+            const lookupSet = new Set();
+            if (!Array.isArray(rawData)) { console.error(`CRITICAL ERROR in parseTopographyMorphologyRareCSV for ${fileName}: rawData is NOT an array.`, rawData); return lookupSet; }
+            rawData.forEach(item => {
+                const topo = String(item.Topography || "").replace(/[^0-9]/g, '');
+                const morph = String(item.Morphology || "").replace(/[^0-9]/g, '');
+                if (topo && morph) lookupSet.add(`${topo}_${morph}`);
+            });
+            return lookupSet;
+        }
+
+
+        // --- UI Population ---
+        function populateMappingUI() {
+            mappingContainer.innerHTML = '';
+            STANDARD_COLUMNS.forEach(stdCol => {
+                const div = document.createElement('div');
+                div.className = 'p-3 border border-gray-300 rounded-md bg-white';
+                const label = document.createElement('label');
+                label.htmlFor = `map-${stdCol.id}`;
+                label.className = 'block text-sm font-medium text-gray-700 mb-1';
+                label.textContent = stdCol.name;
+                const desc = document.createElement('p');
+                desc.className = 'text-xs text-gray-500 mb-2';
+                desc.textContent = stdCol.description;
+                const select = document.createElement('select');
+                select.id = `map-${stdCol.id}`;
+                select.name = `map-${stdCol.id}`;
+                select.className = 'mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md';
+
+                select.addEventListener('change', () => {
+                    checkForDuplicateMappings();
+                    populateRulesOverview();
+                });
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = 'N/A';
+                defaultOption.textContent = 'Not Applicable / Skip';
+                select.appendChild(defaultOption);
+                csvHeaders.forEach(header => {
+                    const option = document.createElement('option');
+                    option.value = header;
+                    option.textContent = header;
+                    select.appendChild(option);
+                });
+
+                const keywords = autoSelectKeywords[stdCol.id] ||
+                                 (stdCol.id === 'RECORD_ID_COLUMN' ? ['recordid', 'patientid', 'regno', 'id', 'pat_id'] :
+                                 stdCol.name.toLowerCase().includes("incidence date") ? ["incid", "diag", "incdate", "date_of_diagnosis"] :
+                                 stdCol.name.toLowerCase().includes("birth date") ? ["birth", "birthd", "dob", "date_of_birth"] :
+                                 stdCol.name.toLowerCase().includes("date of last contact") ? ["dlc", "lastcontact", "last_contact", "datelast"] :
+                                 stdCol.name.toLowerCase().includes("date of death") ? ["dod", "deathdate", "date_death"] :
+                                 stdCol.name.toLowerCase().includes("vital status") ? ["vital", "status"] :
+                                 stdCol.name.toLowerCase().includes("age") ? ["age"] :
+                                 stdCol.name.toLowerCase().includes("sex") ? ["sex"] :
+                                 stdCol.name.toLowerCase().includes("topography") ? ["topo", "top"] :
+                                 stdCol.name.toLowerCase().includes("morphology") ? ["morph", "mor"] :
+                                 stdCol.name.toLowerCase().includes("behaviour") ? ["behav", "beh"] :
+                                 stdCol.name.toLowerCase().includes("basis diagnosis") ? ["basis", "diag", "bas"] :
+                                 stdCol.name.toLowerCase().includes("grade") ? ["grade"] : []);
+
+                let autoSelectedHeader = csvHeaders.find(h => {
+                    const headerLower = h.toLowerCase();
+                    return headerLower === stdCol.name.toLowerCase();
+                });
+
+                if (!autoSelectedHeader) {
+                    autoSelectedHeader = csvHeaders.find(h => {
+                        const headerLower = h.toLowerCase();
+                        return keywords.some(keyword => headerLower.includes(keyword.toLowerCase()));
+                    });
+                }
+
+                if (autoSelectedHeader) select.value = autoSelectedHeader;
+
+                div.appendChild(label);
+                div.appendChild(desc);
+                div.appendChild(select);
+                const warningDiv = document.createElement('div');
+                warningDiv.id = `warning-${stdCol.id}`;
+                warningDiv.className = 'duplicate-mapping-warning';
+                div.appendChild(warningDiv);
+                mappingContainer.appendChild(div);
+            });
+            checkForDuplicateMappings();
+            populateRulesOverview();
+        }
+
+        function checkForDuplicateMappings() {
+            const mappedValues = {};
+            const allSelects = mappingContainer.querySelectorAll('select');
+
+            allSelects.forEach(s => {
+                const warningDiv = document.getElementById(`warning-${s.id.substring(4)}`);
+                if (warningDiv) warningDiv.textContent = '';
+            });
+
+            allSelects.forEach(select => {
+                const selectedCsvHeader = select.value;
+                if (selectedCsvHeader !== 'N/A') {
+                    if (!mappedValues[selectedCsvHeader]) {
+                        mappedValues[selectedCsvHeader] = [];
+                    }
+                    mappedValues[selectedCsvHeader].push(select.id.substring(4));
+                }
+            });
+
+            for (const csvHeader in mappedValues) {
+                if (mappedValues[csvHeader].length > 1) {
+                    const conflictingStdColNames = mappedValues[csvHeader].map(stdColId => {
+                        const stdCol = STANDARD_COLUMNS.find(sc => sc.id === stdColId);
+                        return stdCol ? stdCol.name : stdColId;
+                    });
+
+                    mappedValues[csvHeader].forEach(stdColId => {
+                        const warningDiv = document.getElementById(`warning-${stdColId}`);
+                        if (warningDiv) {
+                             const otherNames = conflictingStdColNames.filter(name => name !== STANDARD_COLUMNS.find(sc => sc.id === stdColId)?.name).join(', ');
+                             warningDiv.textContent = `Warning: '${csvHeader}' is also mapped to: ${otherNames}.`;
+                        }
+                    });
+                }
+            }
+        }
+
+
+        function populateSingleRecordForm() {
+            singleRecordForm.innerHTML = '';
+            STANDARD_COLUMNS.forEach(stdCol => {
+                const fieldContainer = document.createElement('div');
+                fieldContainer.className = 'mb-3';
+
+                const label = document.createElement('label');
+                label.htmlFor = `single-${stdCol.id}`;
+                label.className = 'block text-sm font-medium text-gray-700';
+                label.textContent = stdCol.name;
+                fieldContainer.appendChild(label);
+
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group-container mt-1';
+
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.id = `single-${stdCol.id}`;
+                textInput.name = stdCol.id;
+                textInput.className = 'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-2';
+                if (stdCol.placeholder) textInput.placeholder = stdCol.placeholder;
+                if (stdCol.inputType === 'number') textInput.inputMode = 'numeric';
+
+                inputGroup.appendChild(textInput);
+
+                let dictionaryData = null;
+                let dictStatus = null;
+
+                if (stdCol.dictionaryKey) {
+                    switch(stdCol.dictionaryKey) {
+                        case 'basis': dictionaryData = basisDictionaryData; dictStatus = basisFileStatus; break;
+                        case 'behaviour': dictionaryData = behaviourDictionaryData; dictStatus = behaviourFileStatus; break;
+                        case 'grade': dictionaryData = gradeDictionaryData; dictStatus = gradeFileStatus; break;
+                        case 'morphology4': dictionaryData = morphology4DictionaryData; dictStatus = morphology4FileStatus; break;
+                        case 'sex': dictionaryData = sexDictionaryData; dictStatus = sexFileStatus; break;
+                        case 'topography': dictionaryData = topographyDictionaryData; dictStatus = topographyFileStatus; break;
+                        case 'vitalStatus': dictionaryData = vitalStatusDictionaryData; dictStatus = vitalStatusFileStatus; break;
+                    }
+                }
+
+                if (stdCol.isDate) {
+                    const calendarButton = document.createElement('button');
+                    calendarButton.type = 'button';
+                    calendarButton.textContent = '📅';
+                    calendarButton.className = 'calendar-button flex-shrink-0';
+                    calendarButton.onclick = () => openDatePickerModal(`single-${stdCol.id}`);
+                    inputGroup.appendChild(calendarButton);
+                } else if (dictionaryData && dictStatus && dictStatus.status === 'loaded' && dictionaryData.length > 0) {
+                    const select = document.createElement('select');
+                    select.id = `single-${stdCol.id}-select`;
+                    select.className = 'block rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-2';
+
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "";
+                    defaultOption.textContent = "-- Select --";
+                    select.appendChild(defaultOption);
+
+                    dictionaryData.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.code;
+                        option.textContent = `${item.label} (${item.code})`;
+                        select.appendChild(option);
+                    });
+                    inputGroup.appendChild(select);
+
+                    select.addEventListener('change', function() {
+                        textInput.value = this.value;
+                    });
+
+                    textInput.addEventListener('input', function() {
+                        const typedValue = this.value.trim();
+                        let found = false;
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === typedValue) {
+                                select.selectedIndex = i;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            select.selectedIndex = 0;
+                        }
+                    });
+                }
+
+                fieldContainer.appendChild(inputGroup);
+                const desc = document.createElement('p');
+                desc.className = 'text-xs text-gray-500 mt-1';
+                desc.textContent = stdCol.description;
+                fieldContainer.appendChild(desc);
+                singleRecordForm.appendChild(fieldContainer);
+            });
+        }
+
+
+        function populateRulesOverview() {
+            rulesListDiv.innerHTML = '';
+            if (RULES.length === 0) { rulesListDiv.innerHTML = '<p>No quality rules defined.</p>'; return; }
+            const ul = document.createElement('ul');
+            ul.className = 'list-disc list-inside space-y-1';
+
+            const currentMappings = {};
+            if (currentMode === 'file') {
+                STANDARD_COLUMNS.forEach(stdCol => {
+                    const selectElement = document.getElementById(`map-${stdCol.id}`);
+                    if (selectElement && selectElement.value !== 'N/A') {
+                        currentMappings[stdCol.id] = selectElement.value;
+                    }
+                });
+            }
+
+            RULES.forEach(rule => {
+                const li = document.createElement('li');
+                li.className = 'rule-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.disabled = true;
+                checkbox.className = 'form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out';
+
+                let canRun = true;
+                if (currentMode === 'file') {
+                    for (const reqStdColId of rule.standardInputColumns) {
+                        if (reqStdColId !== ID_COLUMN_KEY && !currentMappings[reqStdColId]) {
+                            canRun = false;
+                            break;
+                        }
+                    }
+                }
+                checkbox.checked = canRun;
+                li.appendChild(checkbox);
+
+                const ruleTextSpan = document.createElement('span');
+                const inputColumnNames = rule.standardInputColumns
+                    .map(scid => STANDARD_COLUMNS.find(sc => sc.id === scid)?.name || scid)
+                    .filter(name => name !== (STANDARD_COLUMNS.find(sc => sc.id === ID_COLUMN_KEY)?.name || ID_COLUMN_KEY));
+
+                let lookupStatusText = '';
+                let statusObj;
+                if (rule.requiresLookup === 'ageMorphology') statusObj = ageMorphologyFileStatus;
+                else if (rule.requiresLookup === 'ageTopoMorph') statusObj = ageTopoMorphFileStatus;
+                else if (rule.requiresLookup === 'ageTopography') statusObj = ageTopographyFileStatus;
+                else if (rule.requiresLookup === 'sexMorphology') statusObj = sexMorphologyFileStatus;
+                else if (rule.requiresLookup === 'topographyBehaviour') statusObj = topographyBehaviourFileStatus;
+                else if (rule.requiresLookup === 'basisMorphologyQuery') statusObj = basisMorphologyQueryFileStatus;
+                else if (rule.requiresLookup === 'basisMorphoTopoQuery') statusObj = basisMorphoTopoQueryFileStatus;
+                else if (rule.requiresLookup === 'gradeInvalid') statusObj = gradeInvalidFileStatus;
+                else if (rule.requiresLookup === 'sexTopographyInvalid') statusObj = sexTopographyInvalidFileStatus;
+                else if (rule.requiresLookup === 'topographyInvalid') statusObj = topographyInvalidFileStatus;
+                else if (rule.requiresLookup === 'topoMorphRare') statusObj = topoMorphRareFileStatus;
+                else if (rule.requiresLookup === 'basis') statusObj = basisFileStatus;
+                else if (rule.requiresLookup === 'behaviour') statusObj = behaviourFileStatus;
+                else if (rule.requiresLookup === 'grade') statusObj = gradeFileStatus;
+                else if (rule.requiresLookup === 'morphology4') statusObj = morphology4FileStatus;
+                else if (rule.requiresLookup === 'sex') statusObj = sexFileStatus;
+                else if (rule.requiresLookup === 'topography') statusObj = topographyFileStatus;
+                else if (rule.requiresLookup === 'vitalStatus') statusObj = vitalStatusFileStatus;
+
+
+                if (statusObj) {
+                    switch(statusObj.status) {
+                        case 'initial': lookupStatusText = `<span class="text-xs lookup-status-loading">(Lookup: Pending...)</span>`; break;
+                        case 'loading': lookupStatusText = `<span class="text-xs lookup-status-loading">(Lookup: Loading ${statusObj.fileName}...)</span>`; break;
+                        case 'loaded': lookupStatusText = `<span class="text-xs lookup-status-loaded">(Lookup: ${statusObj.fileName} Loaded)</span>`; break;
+                        case 'failed': lookupStatusText = `<span class="text-xs lookup-status-failed">(Lookup: ${statusObj.fileName} Failed)</span>`; break;
+                    }
+                }
+                let ruleDescription = rule.description;
+                if (rule.name === "Age Triangulation Check") {
+                    ruleDescription = ruleDescription.replace(/\[CUTOFF\]/g, AGE_TRIANGULATION_YEAR_CUTOFF);
+                }
+
+                ruleTextSpan.innerHTML = `<span class="font-semibold">${rule.name}:</span> ${ruleDescription} <span class="text-xs text-gray-500">(Inputs: ${inputColumnNames.join(', ')})</span> ${lookupStatusText}`;
+                li.appendChild(ruleTextSpan);
+                ul.appendChild(li);
+            });
+            rulesListDiv.appendChild(ul);
+        }
+
+        // --- Main Logic ---
+        function getRuleSeverity(message) {
+            if (message.toUpperCase().startsWith("INVALID")) return 3;
+            if (message.toUpperCase().startsWith("QUERY")) return 2;
+            if (message.toUpperCase().startsWith("RARE")) return 1;
+            return 0;
+        }
+
+        async function runChecksOnSingleRecord() {
+            const singleRecordData = {};
+            let recordIdForMessage = "Single Entry Record";
+            const selectedDateFormat = singleEntryDateFormatSelector.value;
+
+            STANDARD_COLUMNS.forEach(stdCol => {
+                const inputElement = document.getElementById(`single-${stdCol.id}`);
+                if (inputElement) {
+                    let value = inputElement.value.trim();
+                    if (stdCol.isDate) {
+                        value = normalizeDateString(value, selectedDateFormat);
+                    } else if (stdCol.id.includes('DATE') || stdCol.id === 'BASIS_DIAGNOSIS_COLUMN' || stdCol.id === 'GRADE_COLUMN' || stdCol.id === 'AGE_COLUMN') {
+                         if (/^\d+\.0+$/.test(value)) {
+                            value = value.substring(0, value.indexOf('.'));
+                        }
+                    }
+                    singleRecordData[stdCol.id] = value;
+                    if (stdCol.id === ID_COLUMN_KEY && value) {
+                        recordIdForMessage = value;
+                    }
+                }
+            });
+
+            if (recordIdForMessage === "Single Entry Record" && singleRecordData[ID_COLUMN_KEY]) {
+                 recordIdForMessage = singleRecordData[ID_COLUMN_KEY];
+            }
+
+
+            loadingSpinner.classList.remove('hidden');
+            spinnerCounter.textContent = '(1/1)';
+            resultsOutput.innerHTML = '<p class="text-gray-700">Processing...</p>';
+            resultsSection.classList.remove('hidden');
+            resultsSummary.innerHTML = '';
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            try {
+                let allResultsForDisplay = [];
+                let issuesFound = 0;
+                let currentHighestSeverity = 0;
+                let recordMessages = [];
+                const errorCountsByRuleName = {};
+
+
+                RULES.forEach(rule => {
+                    const ruleInputDataForThisRule = {};
+                    rule.standardInputColumns.forEach(scId => {
+                        if (singleRecordData.hasOwnProperty(scId)) {
+                            ruleInputDataForThisRule[scId] = singleRecordData[scId];
+                        }
+                    });
+
+                    const ruleMessagesForRule = rule.evaluate(ruleInputDataForThisRule, recordIdForMessage);
+                    if (ruleMessagesForRule.length > 0) {
+                        if (!errorCountsByRuleName[rule.name]) errorCountsByRuleName[rule.name] = 0;
+                        errorCountsByRuleName[rule.name] += ruleMessagesForRule.length;
+
+                        issuesFound += ruleMessagesForRule.length;
+                        ruleMessagesForRule.forEach(msg => {
+                            recordMessages.push(msg);
+                            allResultsForDisplay.push({
+                                rowNumber: 1,
+                                csvRowIdDisplay: recordIdForMessage,
+                                ruleName: rule.name,
+                                message: msg
+                            });
+                            const severity = getRuleSeverity(msg);
+                            if (severity > currentHighestSeverity) {
+                                currentHighestSeverity = severity;
+                            }
+                        });
+                    }
+                });
+
+                let recordStatus = "valid";
+                if (currentHighestSeverity === 3) recordStatus = "invalid";
+                else if (currentHighestSeverity === 2) recordStatus = "query";
+                else if (currentHighestSeverity === 1) recordStatus = "rare";
+
+                const summaryData = {
+                    totalRecords: 1,
+                    recordsWithInvalid: recordStatus === "invalid" ? 1 : 0,
+                    recordsWithQuery: recordStatus === "query" ? 1 : 0,
+                    recordsWithRare: recordStatus === "rare" ? 1 : 0,
+                    errorCountsByRuleName: errorCountsByRuleName
+                };
+
+                displayResults(allResultsForDisplay, issuesFound, summaryData);
+
+            } catch (e) {
+                console.error("Error during single record quality checks:", e);
+                showMessage('error', 'An error occurred during single record quality checks. See console for details.');
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                spinnerCounter.textContent = '';
+            }
+        }
+
+
+        async function runQualityChecksOnFile() {
+            if (csvData.length === 0) {
+                showModal('Info', 'No main CSV data loaded or data is empty.');
+                return;
+            }
+            const mappings = {};
+            let idColumnMappedCsvHeader = null;
+            STANDARD_COLUMNS.forEach(stdCol => {
+                const selectElement = document.getElementById(`map-${stdCol.id}`);
+                if (selectElement && selectElement.value !== 'N/A') {
+                    mappings[stdCol.id] = selectElement.value;
+                    if (stdCol.id === ID_COLUMN_KEY) idColumnMappedCsvHeader = selectElement.value;
+                }
+            });
+            if (Object.keys(mappings).length === 0) {
+                showModal('Warning', 'No columns mapped from main CSV.');
+                return;
+            }
+             if (!idColumnMappedCsvHeader) {
+                 const idColKeyInfo = STANDARD_COLUMNS.find(sc => sc.id === ID_COLUMN_KEY);
+                 const idColName = idColKeyInfo ? idColKeyInfo.name : 'the designated Record Identifier column';
+                showModal('Suggestion', `The primary reference column ('${idColName}') is not mapped. Messages will use row numbers as identifiers.`);
+            }
+
+            loadingSpinner.classList.remove('hidden');
+            spinnerCounter.textContent = '';
+            resultsOutput.innerHTML = '<p class="text-gray-700">Processing...</p>';
+            resultsSummary.innerHTML = '';
+            resultsSection.classList.remove('hidden');
+            downloadResultsButton.classList.add('hidden');
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            try {
+                csvData.forEach(row => {
+                    row.CheckStatus = "valid";
+                    row.CheckMessages = "";
+                    row.highestSeverity = 0;
+                });
+
+                let allResultsForDisplay = [];
+                let issuesFound = 0;
+                const totalRecords = csvData.length;
+                let processedCount = 0;
+                const errorCountsByRuleName = {};
+                const inputDateFormatForFile = dateFormatSelector.value;
+
+
+                for (const csvRow of csvData) {
+                    const rowIndex = csvData.indexOf(csvRow);
+                    processedCount++;
+                    spinnerCounter.textContent = `(${processedCount}/${totalRecords})`;
+
+                    if (processedCount % 100 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+
+                    const idValueForMessage = (idColumnMappedCsvHeader && csvRow[idColumnMappedCsvHeader])
+                                            ? csvRow[idColumnMappedCsvHeader]
+                                            : `Row ${rowIndex + 1}`;
+
+                    let rowMessages = [];
+
+                    RULES.forEach(rule => {
+                        const ruleInputData = {};
+                        for (const reqStdColId of rule.standardInputColumns) {
+                            if (mappings[reqStdColId] && typeof csvRow[mappings[reqStdColId]] !== 'undefined') {
+                                let valueToEvaluate = csvRow[mappings[reqStdColId]];
+                                const stdColDef = STANDARD_COLUMNS.find(sc => sc.id === reqStdColId);
+
+                                if (stdColDef && stdColDef.isDate) {
+                                     // console.log(`File Check - Before Norm for ${reqStdColId} (Header: ${mappings[reqStdColId]}): '${valueToEvaluate}', Format: ${inputDateFormatForFile}`);
+                                     valueToEvaluate = normalizeDateString(valueToEvaluate, inputDateFormatForFile);
+                                     // console.log(`File Check - After Norm for ${reqStdColId}: '${valueToEvaluate}'`);
+                                }
+                                ruleInputData[reqStdColId] = valueToEvaluate;
+                            } else {
+                                ruleInputData[reqStdColId] = "";
+                            }
+                        }
+                        const ruleMessagesForRule = rule.evaluate(ruleInputData, idValueForMessage);
+                        if (ruleMessagesForRule.length > 0) {
+                            if (!errorCountsByRuleName[rule.name]) errorCountsByRuleName[rule.name] = 0;
+                            errorCountsByRuleName[rule.name] += ruleMessagesForRule.length;
+
+                            issuesFound += ruleMessagesForRule.length;
+                            ruleMessagesForRule.forEach(msg => {
+                                rowMessages.push(msg);
+                                allResultsForDisplay.push({
+                                    rowNumber: rowIndex + 1,
+                                    csvRowIdDisplay: idValueForMessage,
+                                    ruleName: rule.name,
+                                    message: msg
+                                });
+                                const severity = getRuleSeverity(msg);
+                                if (severity > csvRow.highestSeverity) {
+                                    csvRow.highestSeverity = severity;
+                                }
+                            });
+                        }
+                    });
+
+                    if (csvRow.highestSeverity === 3) csvRow.CheckStatus = "invalid";
+                    else if (csvRow.highestSeverity === 2) csvRow.CheckStatus = "query";
+                    else if (csvRow.highestSeverity === 1) csvRow.CheckStatus = "rare";
+
+                    csvRow.CheckMessages = rowMessages.join("; ");
+                }
+
+                let recordsWithInvalid = 0;
+                let recordsWithQuery = 0;
+                let recordsWithRare = 0;
+                csvData.forEach(row => {
+                    if (row.CheckStatus === "invalid") recordsWithInvalid++;
+                    else if (row.CheckStatus === "query") recordsWithQuery++;
+                    else if (row.CheckStatus === "rare") recordsWithRare++;
+                });
+
+                const summaryData = {
+                    totalRecords: totalRecords,
+                    recordsWithInvalid: recordsWithInvalid,
+                    recordsWithQuery: recordsWithQuery,
+                    recordsWithRare: recordsWithRare,
+                    errorCountsByRuleName: errorCountsByRuleName
+                };
+
+                displayResults(allResultsForDisplay, issuesFound, summaryData);
+                if (issuesFound > 0 || csvData.length > 0) {
+                    downloadResultsButton.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error("Error during quality checks:", e);
+                showMessage('error', 'An error occurred during quality checks. See console for details.');
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                spinnerCounter.textContent = '';
+            }
+        }
+
+        function escapeCSVField(field) {
+            if (field === null || typeof field === 'undefined') {
+                return '';
+            }
+            let stringField = String(field);
+            if (stringField.includes(currentDelimiter) || stringField.includes('\n') || stringField.includes('"')) {
+                stringField = stringField.replace(/"/g, '""');
+                return `"${stringField}"`;
+            }
+            return stringField;
+        }
+
+        function downloadResultsCSV() {
+            if (csvData.length === 0) {
+                showMessage('info', 'No data to download.');
+                return;
+            }
+
+            const newHeaders = [...csvHeaders, "CheckStatus", "CheckMessages"];
+            let csvContent = newHeaders.map(header => escapeCSVField(header)).join(currentDelimiter) + "\r\n";
+
+            csvData.forEach(row => {
+                const originalRowValues = csvHeaders.map(header => escapeCSVField(row[header]));
+                const status = escapeCSVField(row.CheckStatus || "valid");
+                const messages = escapeCSVField(row.CheckMessages || "");
+                csvContent += [...originalRowValues, status, messages].join(currentDelimiter) + "\r\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                let downloadFileName = 'results_data.csv';
+                if (originalUploadedFileName) {
+                    const nameParts = originalUploadedFileName.split('.');
+                    if (nameParts.length > 1) nameParts.pop();
+                    downloadFileName = `results_${nameParts.join('.')}.csv`;
+                }
+                link.setAttribute("href", url);
+                link.setAttribute("download", downloadFileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessage('success', `Results downloaded as ${downloadFileName}`);
+            } else {
+                showMessage('error', 'CSV download not supported by your browser.');
+            }
+        }
+
+
+        function displayResults(results, issuesFound, summaryData = null) {
+            resultsOutput.innerHTML = '';
+            resultsSummary.innerHTML = '';
+
+            if (summaryData) {
+                let summaryHTML = `<div class="summary-grid">`;
+                summaryHTML += `<div class="summary-item"><strong>Total Records Processed:</strong> ${summaryData.totalRecords}</div>`;
+                summaryHTML += `<div class="summary-item"><strong>Records with 'Invalid' Issues:</strong> ${summaryData.recordsWithInvalid}</div>`;
+                summaryHTML += `<div class="summary-item"><strong>Records with 'Query' Issues (Worst):</strong> ${summaryData.recordsWithQuery}</div>`;
+                summaryHTML += `<div class="summary-item"><strong>Records with 'Rare' Issues (Worst):</strong> ${summaryData.recordsWithRare}</div>`;
+                summaryHTML += `</div>`;
+
+                summaryHTML += `<h4 class="text-md font-semibold mt-3 mb-1 text-gray-700">Messages by Rule Type:</h4><ul class="list-disc list-inside text-sm mb-3">`;
+                for (const ruleName in summaryData.errorCountsByRuleName) {
+                    summaryHTML += `<li><strong>${ruleName}:</strong> ${summaryData.errorCountsByRuleName[ruleName]} message(s)</li>`;
+                }
+                summaryHTML += `</ul>`;
+                resultsSummary.innerHTML = summaryHTML;
+            }
+
+
+            if (results.length === 0) {
+                resultsOutput.innerHTML = '<p class="text-green-600 font-semibold">No quality issues found!</p>';
+                return;
+            }
+            const summaryTextForIndividualIssues = document.createElement('p');
+            summaryTextForIndividualIssues.className = 'mb-4 font-semibold';
+            summaryTextForIndividualIssues.textContent = `Found ${issuesFound} individual issue(s) across ${new Set(results.map(r => r.rowNumber)).size} record(s).`;
+            resultsOutput.appendChild(summaryTextForIndividualIssues);
+
+            const resultsByRow = results.reduce((acc, result) => {
+                if (!acc[result.rowNumber]) {
+                    acc[result.rowNumber] = { csvRowIdDisplay: result.csvRowIdDisplay, messages: [] };
+                }
+                acc[result.rowNumber].messages.push(`<strong>${result.ruleName}:</strong> ${result.message}`);
+                return acc;
+            }, {});
+            for (const rowNum in resultsByRow) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'p-3 mb-2 border border-red-200 bg-red-50 rounded-md';
+                const rowHeader = document.createElement('h4');
+                rowHeader.className = 'font-semibold text-red-700';
+                rowHeader.textContent = `Record (Ref: ${resultsByRow[rowNum].csvRowIdDisplay}), CSV Row ${rowNum}`;
+                rowDiv.appendChild(rowHeader);
+                const messageList = document.createElement('ul');
+                messageList.className = 'list-disc list-inside ml-4 text-red-600 text-xs';
+                resultsByRow[rowNum].messages.forEach(msgHtml => {
+                    const li = document.createElement('li');
+                    li.innerHTML = msgHtml;
+                    messageList.appendChild(li);
+                });
+                rowDiv.appendChild(messageList);
+                resultsOutput.appendChild(rowDiv);
+            }
+        }
+
+        function resetApplicationState(fullReset = true) {
+            csvHeaders = [];
+            csvData = [];
+            originalUploadedFileName = 'data.csv';
+            currentDelimiter = ',';
+            csvDelimiterInput.value = ',';
+            dateFormatSelector.value = 'YYYYMMDD';
+            singleEntryDateFormatSelector.value = 'YYYYMMDD';
+            currentInputDateFormat = 'YYYYMMDD';
+            rawCsvText = '';
+            singleRecordForm.reset();
+
+            ageMorphologyLookupData = [];
+            ageTopoMorphLookupData = [];
+            ageTopographyLookupData = [];
+            sexMorphologyLookupData = new Set();
+            topographyBehaviourLookupData = new Set();
+            basisMorphologyQueryLookupData = new Set();
+            basisMorphoTopoQueryLookupData = new Set();
+            gradeInvalidLookupData = new Set();
+            sexTopographyInvalidLookupData = new Set();
+            topographyInvalidLookupData = new Set();
+            topoMorphRareLookupData = new Set();
+            basisDictionaryData = [];
+            behaviourDictionaryData = [];
+            gradeDictionaryData = [];
+            morphology4DictionaryData = [];
+            sexDictionaryData = [];
+            topographyDictionaryData = [];
+            vitalStatusDictionaryData = [];
+            autoSelectKeywords = {}; // Reset this as well
+
+            ageMorphologyFileStatus = { status: 'initial', fileName: 'rules/AgeMorphology_Rare.csv', error: null };
+            ageTopoMorphFileStatus = { status: 'initial', fileName: 'rules/AgeTopographyMorphology_Rare.csv', error: null };
+            ageTopographyFileStatus = { status: 'initial', fileName: 'rules/AgeTopography_Rare.csv', error: null };
+            sexMorphologyFileStatus = { status: 'initial', fileName: 'rules/SexMorphology_Rare.csv', error: null };
+            topographyBehaviourFileStatus = { status: 'initial', fileName: 'rules/TopographyBehaviour_Rare.csv', error: null };
+            basisMorphologyQueryFileStatus = { status: 'initial', fileName: 'rules/BasisMorphology_Query.csv', error: null };
+            basisMorphoTopoQueryFileStatus = { status: 'initial', fileName: 'rules/BasisMorphologyTopography_Query.csv', error: null };
+            gradeInvalidFileStatus = { status: 'initial', fileName: 'rules/Grade_Invalid.csv', error: null };
+            sexTopographyInvalidFileStatus = { status: 'initial', fileName: 'rules/SexTopography_Invalid.csv', error: null };
+            topographyInvalidFileStatus = { status: 'initial', fileName: 'rules/Topography_Invalid.csv', error: null };
+            topoMorphRareFileStatus = { status: 'initial', fileName: 'rules/TopographyMorphology_Rare.csv', error: null };
+            basisFileStatus = { status: 'initial', fileName: 'dictionaries/basis.tsv', error: null };
+            behaviourFileStatus = { status: 'initial', fileName: 'dictionaries/behaviour.tsv', error: null };
+            gradeFileStatus = { status: 'initial', fileName: 'dictionaries/grade.tsv', error: null };
+            morphology4FileStatus = { status: 'initial', fileName: 'dictionaries/morphology4.tsv', error: null };
+            sexFileStatus = { status: 'initial', fileName: 'dictionaries/sex.tsv', error: null };
+            topographyFileStatus = { status: 'initial', fileName: 'dictionaries/topography.tsv', error: null };
+            vitalStatusFileStatus = { status: 'initial', fileName: 'dictionaries/vitalstatus.tsv', error: null };
+            autoSelectKeywordsFileStatus = { status: 'initial', fileName: 'conf/column_autoselect_keywords.json', error: null };
+
+
+
+            mappingContainer.innerHTML = '';
+            resultsOutput.innerHTML = '';
+            resultsSummary.innerHTML = '';
+            dataPreviewTableContainer.innerHTML = '';
+
+            if (fullReset || csvData.length === 0) {
+                 rulesOverviewSection.classList.add('hidden');
+                 rulesListDiv.classList.add('hidden');
+                 toggleRulesText.textContent = 'Show Rules';
+                 toggleRulesArrow.classList.remove('up');
+                 toggleRulesArrow.classList.add('down');
+            }
+            dataPreviewAndDelimiterSection.classList.add('hidden');
+            columnMappingSection.classList.add('hidden');
+            actionButtons.classList.add('hidden');
+            downloadResultsButton.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            messageArea.innerHTML = '';
+            messageArea.classList.add('hidden');
+            loadingSpinner.classList.add('hidden');
+            spinnerCounter.textContent = '';
+
+
+            if (fullReset) {
+                csvFileInput.value = '';
+            }
+            switchTab('file');
+            loadExternalLookups().then(() => {
+                populateSingleRecordForm();
+                if(currentMode === 'file' && (csvData.length > 0 || rawCsvText)) {
+                    rulesOverviewSection.classList.remove('hidden');
+                } else if (currentMode === 'single') {
+                     rulesOverviewSection.classList.remove('hidden');
+                }
+                populateRulesOverview();
+            });
+        }
+
+        function resetApplication() {
+            resetApplicationState(true);
+            showMessage('info', 'Application has been reset. Attempting to reload lookup files.');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSingleRecordForm();
+            resetApplication();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Stats</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	    <link rel="alternate" type="application/rss+xml" href="https://ervik.hopto.org/aotd/rss/spotify.xml" title="Album of the Day on Spotify">
+	    <script src="https://unpkg.com/rough-viz@1.0.6"></script>
+   	    <!-- <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet'> -->
+   	    <link rel="stylesheet" type="text/css" href="./css/style.css">
+		
+			<!-- Panelbear Analytics - We respect your privacy -->
+			<script async src=https://cdn.panelbear.com/analytics.js?site=ADipNVnZHsR ></script>
+			<script>
+			    window.panelbear = window.panelbear || function() { (window.panelbear.q = window.panelbear.q || []).push(arguments); };
+			    panelbear('config', { site: 'ADipNVnZHsR' });
+			</script>
+		 
+	</head>
+	<body>
+		<h1>Stats</h1>
+		
+		<h2>Saturday, 25th of July</h2>
+		<div class = "navigation"> 
+			<a href = './index.html' >Today</a>
+			<br>
+			<span class='miniscule'><a href='./random.html'>Random</a> | <a href='./stats.html'>Stats</a> | <a href='./curated.html'>Curated albums</a></span>
+		</div>
+		<div class = 'image'>
+			<div id="viz0"></div>
+		</div>
+		<br>
+		<div class="stats">
+			<table>
+				<tr>
+					<th>Decade</th>
+					<th>Count</th>
+					<th>Percent</th>
+				</tr>
+				
+				
+				
+				
+				
+					
+						<tr>
+							<td>1960s</td>
+							<td style="text-align:right">15</td>
+							<td style="text-align:right">13%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>1970s</td>
+							<td style="text-align:right">13</td>
+							<td style="text-align:right">11%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>1980s</td>
+							<td style="text-align:right">2</td>
+							<td style="text-align:right">2%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>1990s</td>
+							<td style="text-align:right">25</td>
+							<td style="text-align:right">22%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>2000s</td>
+							<td style="text-align:right">24</td>
+							<td style="text-align:right">21%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>2010s</td>
+							<td style="text-align:right">27</td>
+							<td style="text-align:right">23%</td>
+						</tr>
+					
+				
+					
+						<tr>
+							<td>2020s*</td>
+							<td style="text-align:right">9 (Adjusted: 14)</td>
+							<td style="text-align:right">8%</td>
+						</tr>
+					
+				
+				<tr>
+					<td>Total:</td>
+					<td style="text-align:right">115</td>
+					<td style="text-align:right">100%</td>
+				</tr>
+			</table>
+		</div>
+		<small>*Only 65.62% of the decade has passed.</small>
+		<script type="text/javascript">
+			new roughViz.BarH({
+			    element: '#viz0', // container selection
+			    data: {
+				    labels: ['1960s','1970s','1980s','1990s','2000s','2010s','2020s'],
+			    	values: [15,13,2,25,24,27,9]
+				},			
+				roughness: 5,
+				axisRoughness: 3,
+				fillStyle: 'cross-hatch',
+				xLabel: 'Count',
+				yLabel: 'Decade',
+				interactive: false,
+				// font: 'Architects Daughter',
+				color: 'darkblue'
+			});
+		</script>
+	</body>
+</html>

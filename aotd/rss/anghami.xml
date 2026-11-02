@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <author>
+    <name>mortenjohs</name>
+  </author>
+  <id>https://ervik.hopto.org/aotd/rss//anghami.xml</id>
+  <title>Album of the day on anghami</title>
+  <updated>2026-07-25T14:58:59+02:00</updated>
+  <entry>
+    <id>https://play.anghami.com/album/42637?refer=linktree</id>
+    <link href="https://play.anghami.com/album/42637?refer=linktree"/>
+    <summary>Best song: I Won&#39;t Hurt You.</summary>
+    <title>2026-07-18: The West Coast Pop Art Experimental Band -- Part One (1967)</title>
+    <updated>2026-07-18T00:00:00+02:00</updated>
+    <dc:date>2026-07-18T00:00:00+02:00</dc:date>
+  </entry>
+  <dc:date>2026-07-25T14:58:59+02:00</dc:date>
+</feed>

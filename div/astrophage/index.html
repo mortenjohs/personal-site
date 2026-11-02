@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astrophage Spread 3D Interactive Visualization</title>
+    <meta name="description" content="Interactive 3D simulation of Astrophage interstellar propagation across nearby star systems using Dijkstra graph search.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <!-- PapaParse CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Pako Gzip Decompression CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #07080d;
+            --panel-bg: rgba(15, 18, 28, 0.75);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #00f2ff;
+            --accent-yellow: #ffc800;
+            --accent-green: #00ff9d;
+            --accent-red: #ff3b5c;
+            --text-main: #f0f4fc;
+            --text-dim: #8a99ad;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header Navigation */
+        header {
+            height: 60px;
+            background: rgba(10, 12, 18, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.01em;
+        }
+
+        .header-badge {
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 10px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.25);
+            color: var(--accent-cyan);
+            border-radius: 20px;
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            position: relative;
+        }
+
+        /* Sidebar Panel */
+        aside {
+            width: 340px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--panel-border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            color: var(--text-main);
+        }
+
+        .control-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="text"]:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        select option {
+            background: #101420;
+            color: #fff;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .sol-banner {
+            padding: 12px;
+            border-radius: var(--radius-md);
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            color: var(--accent-green);
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .sol-banner.pending {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--panel-border);
+            color: var(--text-dim);
+        }
+
+        /* Canvas & Viewport */
+        .viewport {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0e111a 0%, #050609 100%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #plotly-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Floating Controls Bar at Bottom of Viewport */
+        .playback-bar {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(720px, 90%);
+            background: rgba(14, 17, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            z-index: 50;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: #000;
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #33f5ff;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+        }
+
+        .time-slider-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .time-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Loading / Overlay state */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(7, 8, 13, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 200;
+            transition: opacity 0.4s ease;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 242, 255, 0.15);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .file-drop-area {
+            border: 2px dashed var(--panel-border);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            margin-top: 12px;
+            cursor: pointer;
+        }
+
+        .file-drop-area:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 242, 255, 0.03);
+        }
+
+        .fallback-card {
+            background: rgba(18, 22, 34, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            max-width: 560px;
+            width: 90%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+        }
+
+        .preview-img-container {
+            width: 100%;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+        }
+
+        .preview-img-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Autocomplete Search Control */
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #0f121c;
+            border: 1px solid var(--accent-cyan);
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            margin-top: 4px;
+        }
+
+        .autocomplete-item {
+            padding: 8px 12px;
+            font-size: 0.86rem;
+            color: var(--text-main);
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background: rgba(0, 242, 255, 0.18);
+            color: var(--accent-cyan);
+        }
+
+        .quick-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .chip {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--panel-border);
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            background: rgba(0, 242, 255, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .workspace {
+                flex-direction: column;
+                height: auto;
+                overflow-y: auto;
+            }
+
+            aside {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--panel-border);
+            }
+
+            .viewport {
+                height: 500px;
+            }
+
+            .playback-bar {
+                width: 94%;
+                bottom: 12px;
+                padding: 10px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <span style="font-size: 1.4rem;">🌌</span>
+            <h1>Astrophage Spread Simulation</h1>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-dim);">
+            Project Hail Mary Astronomy Model
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- Sidebar Controls -->
+        <aside>
+            <div class="section-title">
+                <span>⚙️</span> Simulation Parameters
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Star Map Radius</span>
+                    <span class="control-value" id="val-radius">30 pc</span>
+                </div>
+                <input type="range" id="input-radius" min="5" max="100" value="30" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Max Jump Distance</span>
+                    <span class="control-value" id="val-jump">8.0 ly</span>
+                </div>
+                <input type="range" id="input-jump" min="1.0" max="20.0" value="8.0" step="0.1">
+            </div>
+
+            <!-- Source Star Control -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Source Star (Origin)</span>
+                    <span class="control-value" id="val-source-star">Tau Ceti</span>
+                </div>
+                <div class="autocomplete-wrapper" id="source-wrapper">
+                    <input type="text" id="input-source-search" placeholder="🔍 Search origin star..." autocomplete="off">
+                    <div id="source-autocomplete-list" class="autocomplete-dropdown" style="display: none;"></div>
+                </div>
+                <div class="quick-chips">
+                    <span class="chip" onclick="selectSourceStarByName('Tau Ceti')">Tau Ceti</span>
+                    <span class="chip" onclick="selectSourceStarByName('Epsilon Eridani')">Eps Eri</span>
+                    <span class="chip" onclick="selectSourceStarByName('40 Eridani')">40 Eri</span>
+                    <span class="chip" onclick="selectSourceStarByName('Sol')">Sol</span>
+                </div>
+                <input type="hidden" id="source-star-index" value="0">
+            </div>
+
+            <!-- Target Star Control -->
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Target Star (Destination)</span>
+                    <span class="control-value" id="val-target-star">Sol</span>
+                </div>
+                <div class="autocomplete-wrapper" id="target-wrapper">
+                    <input type="text" id="input-target-search" placeholder="🔍 Search target star..." autocomplete="off">
+                    <div id="target-autocomplete-list" class="autocomplete-dropdown" style="display: none;"></div>
+                </div>
+                <div class="quick-chips">
+                    <span class="chip" onclick="selectTargetStarByName('Sol')">Sol</span>
+                    <span class="chip" onclick="selectTargetStarByName('Tau Ceti')">Tau Ceti</span>
+                    <span class="chip" onclick="selectTargetStarByName('Epsilon Eridani')">Eps Eri</span>
+                    <span class="chip" onclick="selectTargetStarByName('40 Eridani')">40 Eri</span>
+                </div>
+                <input type="hidden" id="target-star-index" value="0">
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--panel-border); margin: 4px 0;">
+
+            <div class="section-title">
+                <span>⚡</span> Playback Settings
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Playback Speed</span>
+                    <span class="control-value" id="val-speed">2.0x</span>
+                </div>
+                <input type="range" id="input-speed" min="0.5" max="10.0" value="2.0" step="0.5">
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Dijkstra Computation Time</div>
+                <div class="stat-value" id="stat-dijkstra-time">0 ms</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Total Stars in Radius</div>
+                <div class="stat-value" id="stat-star-count">0 stars</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Infected Stars</div>
+                <div class="stat-value" id="stat-infected-count" style="color: var(--accent-yellow);">0 stars (0.0%)</div>
+            </div>
+
+            <div class="sol-banner pending" id="target-banner">
+                <span>🎯</span> Target Arrival: Pending
+            </div>
+
+            <!-- Fallback File Input -->
+            <div class="file-drop-area" id="file-drop">
+                <div style="font-size: 0.85rem; font-weight: 500;">Dataset Loader</div>
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Paste Dropbox/URL or upload local file:</div>
+                <div style="display: flex; gap: 4px; margin-top: 6px;" onclick="event.stopPropagation()">
+                    <input type="text" id="input-online-url" value="https://www.dropbox.com/scl/fi/7ehvsiadkybwgsz6db19f/hygdata_v42.csv.gz?rlkey=xao682wnk5eqrw8earmgfmiuc&dl=0" placeholder="Paste Dropbox or URL..." style="flex: 1; min-width: 0; font-size: 0.75rem; padding: 5px 8px; border-radius: 4px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.4); color: #fff;">
+                    <button class="btn btn-primary" onclick="loadFromCustomUrl()" style="font-size: 0.75rem; padding: 5px 10px; white-space: nowrap; background: linear-gradient(135deg, #00f2ff, #0088ff); color: #000; border: none; font-weight: 600;">Fetch</button>
+                </div>
+                <div style="font-size: 0.75rem; margin-top: 8px;">
+                    <span style="color: var(--text-dim);">Or click box to upload local <code style="color: var(--accent-cyan);">hygdata.csv</code></span>
+                </div>
+                <input type="file" id="file-input" accept=".csv,.gz" style="display: none;">
+            </div>
+        </aside>
+
+        <!-- Viewport & 3D Canvas -->
+        <main class="viewport">
+            <div id="plotly-canvas"></div>
+
+            <!-- Playback Control Bar -->
+            <div class="playback-bar">
+                <button class="btn btn-primary" id="btn-play">
+                    <span id="play-icon">▶️</span> <span id="play-text">Play</span>
+                </button>
+                <button class="btn" id="btn-reset">
+                    <span>🔄</span> Reset
+                </button>
+
+                <div class="time-slider-container">
+                    <div class="time-display">
+                        <span>Year <strong id="lbl-current-year" style="color: var(--accent-yellow);">0.0</strong></span>
+                        <span id="lbl-max-year">Max: 100.0y</span>
+                    </div>
+                    <input type="range" id="slider-time" min="0" max="100" value="0" step="0.1">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div style="font-weight: 500; font-size: 1.1rem;" id="loading-status">Loading Astronomy Dataset (hygdata.csv)...</div>
+        <div style="font-size: 0.85rem; color: var(--text-dim);" id="loading-subtext">Parsing star coordinates and distances</div>
+    </div>
+
+    <script>
+        // Global State
+        let rawCsvData = [];
+        let filteredStars = [];
+        let simulationResult = null; // { dist: Float64Array, parent: Int32Array }
+        let maxSimulationTime = 100.0;
+        let currentYear = 0.0;
+        let isPlaying = false;
+        let animationFrameId = null;
+        let sourceStarIndex = 0;
+        let targetStarIndex = 0;
+        let targetArrivalYear = Infinity;
+
+        const PC_TO_LY = 3.26156;
+        const ASTROPHAGE_SPEED_C = 0.92;
+
+        // B-V Color Index to RGB Converter
+        function ciToRgb(ci) {
+            if (isNaN(ci) || ci === null) return [1.0, 1.0, 1.0];
+            if (ci < -0.3) return [0.7, 0.7, 1.0];
+            if (ci < 0.0)  return [0.85, 0.85, 1.0];
+            if (ci < 0.4)  return [1.0, 1.0, 1.0];
+            if (ci < 0.8)  return [1.0, 1.0, 0.8];
+            if (ci < 1.2)  return [1.0, 0.8, 0.6];
+            return [1.0, 0.6, 0.6];
+        }
+
+        // Min Priority Queue for Dijkstra
+        class MinHeap {
+            constructor() { this.heap = []; }
+            push(item) {
+                this.heap.push(item);
+                this._up(this.heap.length - 1);
+            }
+            pop() {
+                if (this.heap.length === 0) return null;
+                const top = this.heap[0];
+                const bottom = this.heap.pop();
+                if (this.heap.length > 0) {
+                    this.heap[0] = bottom;
+                    this._down(0);
+                }
+                return top;
+            }
+            _up(i) {
+                while (i > 0) {
+                    const p = (i - 1) >> 1;
+                    if (this.heap[i].val < this.heap[p].val) {
+                        const tmp = this.heap[i]; this.heap[i] = this.heap[p]; this.heap[p] = tmp;
+                        i = p;
+                    } else break;
+                }
+            }
+            _down(i) {
+                const len = this.heap.length;
+                while ((i << 1) + 1 < len) {
+                    let left = (i << 1) + 1, right = left + 1, smallest = left;
+                    if (right < len && this.heap[right].val < this.heap[left].val) smallest = right;
+                    if (this.heap[smallest].val < this.heap[i].val) {
+                        const tmp = this.heap[i]; this.heap[i] = this.heap[smallest]; this.heap[smallest] = tmp;
+                        i = smallest;
+                    } else break;
+                }
+            }
+            get size() { return this.heap.length; }
+        }
+
+        // Spatial Dijkstra Engine
+        function runDijkstra(stars, maxJumpLy, startIdx) {
+            const startTime = performance.now();
+            const N = stars.length;
+            const maxJumpPc = maxJumpLy / PC_TO_LY;
+            const maxJumpPcSq = maxJumpPc * maxJumpPc;
+
+            // Spatial Bucketing for Fast Graph Construction
+            const cellSize = maxJumpPc;
+            const buckets = new Map();
+            for (let i = 0; i < N; i++) {
+                const s = stars[i];
+                const cx = Math.floor(s.x / cellSize);
+                const cy = Math.floor(s.y / cellSize);
+                const cz = Math.floor(s.z / cellSize);
+                const key = `${cx},${cy},${cz}`;
+                if (!buckets.has(key)) buckets.set(key, []);
+                buckets.get(key).push(i);
+            }
+
+            const adj = Array.from({ length: N }, () => []);
+
+            for (let i = 0; i < N; i++) {
+                const s1 = stars[i];
+                const cx = Math.floor(s1.x / cellSize);
+                const cy = Math.floor(s1.y / cellSize);
+                const cz = Math.floor(s1.z / cellSize);
+
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            const neighborKey = `${cx + dx},${cy + dy},${cz + dz}`;
+                            const neighbors = buckets.get(neighborKey);
+                            if (!neighbors) continue;
+
+                            for (let k = 0; k < neighbors.length; k++) {
+                                const j = neighbors[k];
+                                if (j <= i) continue;
+                                const s2 = stars[j];
+                                const dx2 = s1.x - s2.x;
+                                const dy2 = s1.y - s2.y;
+                                const dz2 = s1.z - s2.z;
+                                const distSq = dx2*dx2 + dy2*dy2 + dz2*dz2;
+                                if (distSq <= maxJumpPcSq) {
+                                    const distLy = Math.sqrt(distSq) * PC_TO_LY;
+                                    const travelTimeYears = distLy / ASTROPHAGE_SPEED_C;
+                                    adj[i].push({ node: j, weight: travelTimeYears });
+                                    adj[j].push({ node: i, weight: travelTimeYears });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Shortest Path Solver
+            const dist = new Float64Array(N).fill(Infinity);
+            const parent = new Int32Array(N).fill(-1);
+            dist[startIdx] = 0;
+
+            const pq = new MinHeap();
+            pq.push({ node: startIdx, val: 0 });
+
+            while (pq.size > 0) {
+                const curr = pq.pop();
+                const u = curr.node;
+                const d = curr.val;
+
+                if (d > dist[u]) continue;
+
+                const neighbors = adj[u];
+                for (let k = 0; k < neighbors.length; k++) {
+                    const edge = neighbors[k];
+                    const v = edge.node;
+                    const newDist = d + edge.weight;
+                    if (newDist < dist[v]) {
+                        dist[v] = newDist;
+                        parent[v] = u;
+                        pq.push({ node: v, val: newDist });
+                    }
+                }
+            }
+
+            const endTime = performance.now();
+            document.getElementById('stat-dijkstra-time').textContent = `${(endTime - startTime).toFixed(1)} ms`;
+
+            return { dist, parent };
+        }
+
+        // Data Processing & Filtering
+        function updateDatasetAndSimulation() {
+            const radius = parseFloat(document.getElementById('input-radius').value);
+            const maxJump = parseFloat(document.getElementById('input-jump').value);
+
+            // Filter stars by radius
+            filteredStars = [];
+            let defaultStartIdx = 0;
+            let tauIdx = -1;
+            let solFoundIdx = -1;
+
+            for (let i = 0; i < rawCsvData.length; i++) {
+                const row = rawCsvData[i];
+                const x = parseFloat(row.x), y = parseFloat(row.y), z = parseFloat(row.z);
+                if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
+
+                const distSol = Math.sqrt(x*x + y*y + z*z);
+                if (distSol <= radius) {
+                    const absmag = parseFloat(row.absmag) || 10;
+                    const baseSize = Math.max(0.5, Math.min(20, (15 - absmag) * 0.5));
+                    const ci = parseFloat(row.ci);
+                    const rgb = ciToRgb(ci);
+
+                    let name = row.proper && row.proper.trim() !== '' ? row.proper.trim() : '';
+                    const hd = parseInt(row.hd);
+                    if (hd === 10700) name = "Tau Ceti";
+                    else if (hd === 22049) name = "Epsilon Eridani";
+                    else if (hd === 26965) name = "40 Eridani";
+                    else if (!name) {
+                        if (!isNaN(hd)) name = `HD ${hd}`;
+                        else name = `Star ${row.id || i}`;
+                    }
+
+                    const starObj = {
+                        id: row.id,
+                        name: name,
+                        hd: hd,
+                        proper: row.proper,
+                        x: x, y: y, z: z,
+                        baseSize: baseSize,
+                        rgbStr: `rgb(${Math.floor(rgb[0]*255)},${Math.floor(rgb[1]*255)},${Math.floor(rgb[2]*255)})`,
+                        infRgbStr: `rgb(${Math.floor((rgb[0]+1.0)/2*255)},${Math.floor((rgb[1]+1.0)/2*255)},${Math.floor(rgb[2]/2*255)})`
+                    };
+
+                    const idx = filteredStars.length;
+                    filteredStars.push(starObj);
+
+                    if (hd === 10700 || name === 'Tau Ceti') tauIdx = idx;
+                    if (row.proper === 'Sol' || name === 'Sol') solFoundIdx = idx;
+                }
+            }
+
+            document.getElementById('stat-star-count').textContent = `${filteredStars.length} stars`;
+
+            let chosenSourceIdx = tauIdx !== -1 ? tauIdx : 0;
+            let chosenTargetIdx = solFoundIdx !== -1 ? solFoundIdx : 0;
+
+            const sourceSearchElem = document.getElementById('input-source-search');
+            if (sourceSearchElem && sourceSearchElem.value) {
+                const prevIdx = filteredStars.findIndex(s => s.name === sourceSearchElem.value);
+                if (prevIdx !== -1) chosenSourceIdx = prevIdx;
+            }
+
+            const targetSearchElem = document.getElementById('input-target-search');
+            if (targetSearchElem && targetSearchElem.value) {
+                const prevIdx = filteredStars.findIndex(s => s.name === targetSearchElem.value);
+                if (prevIdx !== -1) chosenTargetIdx = prevIdx;
+            }
+
+            sourceStarIndex = chosenSourceIdx;
+            targetStarIndex = chosenTargetIdx;
+
+            const srcStar = filteredStars[sourceStarIndex];
+            const tgtStar = filteredStars[targetStarIndex];
+
+            if (srcStar) {
+                if (sourceSearchElem) sourceSearchElem.value = srcStar.name;
+                const valSrc = document.getElementById('val-source-star');
+                if (valSrc) valSrc.textContent = srcStar.name;
+            }
+
+            if (tgtStar) {
+                if (targetSearchElem) targetSearchElem.value = tgtStar.name;
+                const valTgt = document.getElementById('val-target-star');
+                if (valTgt) valTgt.textContent = tgtStar.name;
+            }
+
+            recomputeSimulation();
+        }
+
+        function recomputeSimulation() {
+            if (filteredStars.length === 0) return;
+
+            const maxJump = parseFloat(document.getElementById('input-jump').value);
+            const startIdx = sourceStarIndex;
+
+            simulationResult = runDijkstra(filteredStars, maxJump, startIdx);
+
+            // Compute max time
+            let maxT = 0;
+            for (let i = 0; i < simulationResult.dist.length; i++) {
+                const d = simulationResult.dist[i];
+                if (d !== Infinity && d > maxT) maxT = d;
+            }
+            maxSimulationTime = maxT > 0 ? maxT : 100.0;
+
+            if (targetStarIndex !== -1 && simulationResult.dist[targetStarIndex] !== undefined) {
+                targetArrivalYear = simulationResult.dist[targetStarIndex];
+            } else {
+                targetArrivalYear = Infinity;
+            }
+
+            document.getElementById('lbl-max-year').textContent = `Max: ${maxSimulationTime.toFixed(1)}y`;
+            document.getElementById('slider-time').max = maxSimulationTime;
+
+            updateVisualization();
+        }
+
+        // Render Plotly 3D Scene
+        function updateVisualization() {
+            if (!filteredStars || filteredStars.length === 0 || !simulationResult) return;
+
+            const currentY = currentYear;
+
+            // Arrays for Plotly Traces
+            const uninfX = [], uninfY = [], uninfZ = [], uninfSizes = [], uninfColors = [], uninfHover = [];
+            const infX = [], infY = [], infZ = [], infSizes = [], infColors = [], infHover = [];
+
+            let infectedCount = 0;
+
+            for (let i = 0; i < filteredStars.length; i++) {
+                const s = filteredStars[i];
+                const arrTime = simulationResult.dist[i];
+
+                if (arrTime <= currentY) {
+                    infectedCount++;
+                    infX.push(s.x); infY.push(s.y); infZ.push(s.z);
+                    infSizes.push(s.baseSize * 1.5);
+                    infColors.push(s.infRgbStr);
+                    infHover.push(s.name);
+                } else {
+                    uninfX.push(s.x); uninfY.push(s.y); uninfZ.push(s.z);
+                    uninfSizes.push(s.baseSize);
+                    uninfColors.push(s.rgbStr);
+                    uninfHover.push(s.name);
+                }
+            }
+
+            // Trace 0: Uninfected Stars
+            const t0 = {
+                type: 'scatter3d', mode: 'markers',
+                x: uninfX, y: uninfY, z: uninfZ,
+                marker: { size: uninfSizes, color: uninfColors, opacity: 0.2 },
+                name: 'Uninfected', hovertext: uninfHover
+            };
+
+            // Trace 1: Infected Stars
+            const t1 = {
+                type: 'scatter3d', mode: 'markers',
+                x: infX, y: infY, z: infZ,
+                marker: { size: infSizes, color: infColors, opacity: 0.85, line: { color: 'orange', width: 1 } },
+                name: 'Infected', hovertext: infHover
+            };
+
+            // Trace 2: Target Star Marker
+            let t2;
+            if (targetStarIndex !== -1 && filteredStars[targetStarIndex]) {
+                const targetStar = filteredStars[targetStarIndex];
+                const isTargetReached = targetArrivalYear <= currentY;
+                t2 = {
+                    type: 'scatter3d', mode: 'markers',
+                    x: [targetStar.x], y: [targetStar.y], z: [targetStar.z],
+                    marker: {
+                        size: 8,
+                        color: isTargetReached ? '#ffea00' : '#00f2ff',
+                        symbol: 'diamond',
+                        line: { color: '#ffffff', width: 1.5 }
+                    },
+                    name: isTargetReached ? `${targetStar.name} (Reached ${Math.round(targetArrivalYear)}y)` : `${targetStar.name} Target`
+                };
+            } else {
+                t2 = { type: 'scatter3d', mode: 'markers', x: [], y: [], z: [], name: 'Target' };
+            }
+
+            // Trace 3 & 4: Propagation Paths
+            const edgeX = [], edgeY = [], edgeZ = [];
+            const activeX = [], activeY = [], activeZ = [];
+
+            const parents = simulationResult.parent;
+            const dists = simulationResult.dist;
+
+            for (let c = 0; c < filteredStars.length; c++) {
+                const p = parents[c];
+                if (p === -1) continue;
+
+                const arrival = dists[c];
+                const departure = dists[p];
+
+                const pStar = filteredStars[p];
+                const cStar = filteredStars[c];
+
+                if (currentY >= arrival) {
+                    edgeX.push(pStar.x, cStar.x, null);
+                    edgeY.push(pStar.y, cStar.y, null);
+                    edgeZ.push(pStar.z, cStar.z, null);
+                } else if (departure <= currentY && currentY < arrival) {
+                    const t = (currentY - departure) / (arrival - departure);
+                    const currX = pStar.x + t * (cStar.x - pStar.x);
+                    const currY = pStar.y + t * (cStar.y - pStar.y);
+                    const currZ = pStar.z + t * (cStar.z - pStar.z);
+
+                    activeX.push(pStar.x, currX, null);
+                    activeY.push(pStar.y, currY, null);
+                    activeZ.push(pStar.z, currZ, null);
+                }
+            }
+
+            const t3 = {
+                type: 'scatter3d', mode: 'lines',
+                x: edgeX, y: edgeY, z: edgeZ,
+                line: { color: '#ff3b5c', width: 2 },
+                name: 'Paths', opacity: 0.5
+            };
+
+            const t4 = {
+                type: 'scatter3d', mode: 'lines',
+                x: activeX, y: activeY, z: activeZ,
+                line: { color: '#ffea00', width: 3 },
+                name: 'Active Wave', opacity: 0.9
+            };
+
+            const radius = parseFloat(document.getElementById('input-radius').value);
+            const jump = parseFloat(document.getElementById('input-jump').value);
+            const startIdx = sourceStarIndex;
+
+            const layout = {
+                scene: {
+                    xaxis: { visible: false },
+                    yaxis: { visible: false },
+                    zaxis: { visible: false },
+                    bgcolor: '#07080d'
+                },
+                margin: { l: 0, r: 0, b: 0, t: 0 },
+                paper_bgcolor: '#07080d',
+                font: { color: '#ffffff', family: 'Outfit' },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98, font: { color: '#ffffff' }, bgcolor: 'rgba(0,0,0,0.5)' },
+                uirevision: `sim_${radius}_${jump}_${startIdx}`,
+                autosize: true
+            };
+
+            const config = { responsive: true, displayModeBar: false };
+
+            Plotly.react('plotly-canvas', [t0, t1, t2, t3, t4], layout, config);
+
+            // Update Status UI
+            document.getElementById('lbl-current-year').textContent = currentYear.toFixed(1);
+            document.getElementById('slider-time').value = currentYear;
+
+            const infectedPct = filteredStars.length > 0 ? ((infectedCount / filteredStars.length) * 100).toFixed(1) : '0.0';
+            const infElem = document.getElementById('stat-infected-count');
+            if (infElem) {
+                infElem.textContent = `${infectedCount} stars (${infectedPct}%)`;
+            }
+
+            const targetBanner = document.getElementById('target-banner');
+            if (targetBanner && targetStarIndex !== -1 && filteredStars[targetStarIndex]) {
+                const targetName = filteredStars[targetStarIndex].name;
+                if (currentY >= targetArrivalYear) {
+                    targetBanner.className = 'sol-banner';
+                    targetBanner.innerHTML = `<span>✅</span> ${targetName.toUpperCase()} REACHED AT YEAR ${Math.round(targetArrivalYear)}!`;
+                } else {
+                    targetBanner.className = 'sol-banner pending';
+                    targetBanner.innerHTML = `<span>🎯</span> ${targetName} Arrival: ${targetArrivalYear !== Infinity ? Math.round(targetArrivalYear) + 'y' : 'Unreachable'}`;
+                }
+            }
+        }
+
+        // Animation Loop
+        let lastFrameTime = performance.now();
+        function animateFrame(now) {
+            if (!isPlaying) return;
+
+            const deltaSec = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+
+            const speed = parseFloat(document.getElementById('input-speed').value);
+            const yearIncrement = (maxSimulationTime / 100.0) * (speed * 0.5) * (deltaSec * 10);
+
+            currentYear += yearIncrement;
+
+            if (currentYear >= maxSimulationTime) {
+                currentYear = maxSimulationTime;
+                isPlaying = false;
+                updatePlayButton();
+            }
+
+            updateVisualization();
+
+            if (isPlaying) {
+                animationFrameId = requestAnimationFrame(animateFrame);
+            }
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            updatePlayButton();
+            if (isPlaying) {
+                lastFrameTime = performance.now();
+                animationFrameId = requestAnimationFrame(animateFrame);
+            } else if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function updatePlayButton() {
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+            if (isPlaying) {
+                icon.textContent = '⏸️';
+                text.textContent = 'Pause';
+            } else {
+                icon.textContent = '▶️';
+                text.textContent = 'Play';
+            }
+        }
+
+        function resetPlayback() {
+            isPlaying = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            updatePlayButton();
+            currentYear = 0.0;
+            updateVisualization();
+        }
+
+        // Autocomplete Selection Functions
+        function selectSourceStarByIndex(idx) {
+            if (!filteredStars[idx]) return;
+            sourceStarIndex = idx;
+            const star = filteredStars[idx];
+            const searchInput = document.getElementById('input-source-search');
+            const valElem = document.getElementById('val-source-star');
+            const idxElem = document.getElementById('source-star-index');
+
+            if (idxElem) idxElem.value = idx;
+            if (searchInput) searchInput.value = star.name;
+            if (valElem) valElem.textContent = star.name;
+
+            const list = document.getElementById('source-autocomplete-list');
+            if (list) list.style.display = 'none';
+
+            recomputeSimulation();
+        }
+
+        function selectSourceStarByName(name) {
+            const idx = filteredStars.findIndex(s => s.name === name || s.proper === name || s.name.startsWith(name));
+            if (idx !== -1) {
+                selectSourceStarByIndex(idx);
+            }
+        }
+
+        function renderSourceAutocompleteList(query = '') {
+            const list = document.getElementById('source-autocomplete-list');
+            if (!list || filteredStars.length === 0) return;
+
+            const q = query.trim().toLowerCase();
+            let matches = [];
+
+            if (q === '') {
+                matches = filteredStars.slice(0, 50);
+            } else {
+                matches = filteredStars.filter(s => {
+                    return (s.name && s.name.toLowerCase().includes(q)) ||
+                           (s.proper && s.proper.toLowerCase().includes(q)) ||
+                           (s.hd && s.hd.toString().includes(q)) ||
+                           (s.id && s.id.toString().includes(q));
+                }).slice(0, 50);
+            }
+
+            if (matches.length === 0) {
+                list.innerHTML = `<div class="autocomplete-item" style="color: var(--text-dim); cursor: default;">No matching stars found</div>`;
+                list.style.display = 'block';
+                return;
+            }
+
+            list.innerHTML = matches.map(s => {
+                const globalIdx = filteredStars.indexOf(s);
+                const distSol = Math.sqrt(s.x*s.x + s.y*s.y + s.z*s.z).toFixed(1);
+                const isActive = globalIdx === sourceStarIndex;
+                return `
+                    <div class="autocomplete-item ${isActive ? 'active' : ''}" onclick="selectSourceStarByIndex(${globalIdx})">
+                        <span><strong>${s.name}</strong></span>
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">${distSol} pc</span>
+                    </div>
+                `;
+            }).join('');
+
+            list.style.display = 'block';
+        }
+
+        function selectTargetStarByIndex(idx) {
+            if (!filteredStars[idx]) return;
+            targetStarIndex = idx;
+            const star = filteredStars[idx];
+            const searchInput = document.getElementById('input-target-search');
+            const valElem = document.getElementById('val-target-star');
+            const idxElem = document.getElementById('target-star-index');
+
+            if (idxElem) idxElem.value = idx;
+            if (searchInput) searchInput.value = star.name;
+            if (valElem) valElem.textContent = star.name;
+
+            const list = document.getElementById('target-autocomplete-list');
+            if (list) list.style.display = 'none';
+
+            recomputeSimulation();
+        }
+
+        function selectTargetStarByName(name) {
+            const idx = filteredStars.findIndex(s => s.name === name || s.proper === name || s.name.startsWith(name));
+            if (idx !== -1) {
+                selectTargetStarByIndex(idx);
+            }
+        }
+
+        function renderTargetAutocompleteList(query = '') {
+            const list = document.getElementById('target-autocomplete-list');
+            if (!list || filteredStars.length === 0) return;
+
+            const q = query.trim().toLowerCase();
+            let matches = [];
+
+            if (q === '') {
+                matches = filteredStars.slice(0, 50);
+            } else {
+                matches = filteredStars.filter(s => {
+                    return (s.name && s.name.toLowerCase().includes(q)) ||
+                           (s.proper && s.proper.toLowerCase().includes(q)) ||
+                           (s.hd && s.hd.toString().includes(q)) ||
+                           (s.id && s.id.toString().includes(q));
+                }).slice(0, 50);
+            }
+
+            if (matches.length === 0) {
+                list.innerHTML = `<div class="autocomplete-item" style="color: var(--text-dim); cursor: default;">No matching stars found</div>`;
+                list.style.display = 'block';
+                return;
+            }
+
+            list.innerHTML = matches.map(s => {
+                const globalIdx = filteredStars.indexOf(s);
+                const distSol = Math.sqrt(s.x*s.x + s.y*s.y + s.z*s.z).toFixed(1);
+                const isActive = globalIdx === targetStarIndex;
+                return `
+                    <div class="autocomplete-item ${isActive ? 'active' : ''}" onclick="selectTargetStarByIndex(${globalIdx})">
+                        <span><strong>${s.name}</strong></span>
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">${distSol} pc</span>
+                    </div>
+                `;
+            }).join('');
+
+            list.style.display = 'block';
+        }
+
+        // Event Listeners
+        document.getElementById('input-radius').addEventListener('input', (e) => {
+            document.getElementById('val-radius').textContent = `${e.target.value} pc`;
+            updateDatasetAndSimulation();
+        });
+
+        document.getElementById('input-jump').addEventListener('input', (e) => {
+            document.getElementById('val-jump').textContent = `${parseFloat(e.target.value).toFixed(1)} ly`;
+            recomputeSimulation();
+        });
+
+        document.getElementById('input-speed').addEventListener('input', (e) => {
+            document.getElementById('val-speed').textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
+        });
+
+        const sourceSearchInput = document.getElementById('input-source-search');
+        if (sourceSearchInput) {
+            sourceSearchInput.addEventListener('focus', () => renderSourceAutocompleteList(sourceSearchInput.value));
+            sourceSearchInput.addEventListener('input', (e) => renderSourceAutocompleteList(e.target.value));
+            sourceSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const list = document.getElementById('source-autocomplete-list');
+                    if (list) list.style.display = 'none';
+                }
+            });
+        }
+
+        const targetSearchInput = document.getElementById('input-target-search');
+        if (targetSearchInput) {
+            targetSearchInput.addEventListener('focus', () => renderTargetAutocompleteList(targetSearchInput.value));
+            targetSearchInput.addEventListener('input', (e) => renderTargetAutocompleteList(e.target.value));
+            targetSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const list = document.getElementById('target-autocomplete-list');
+                    if (list) list.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            const srcWrapper = document.getElementById('source-wrapper');
+            const srcList = document.getElementById('source-autocomplete-list');
+            if (srcWrapper && srcList && !srcWrapper.contains(e.target)) {
+                srcList.style.display = 'none';
+            }
+
+            const tgtWrapper = document.getElementById('target-wrapper');
+            const tgtList = document.getElementById('target-autocomplete-list');
+            if (tgtWrapper && tgtList && !tgtWrapper.contains(e.target)) {
+                tgtList.style.display = 'none';
+            }
+        });
+
+        document.getElementById('btn-play').addEventListener('click', togglePlay);
+        document.getElementById('btn-reset').addEventListener('click', resetPlayback);
+
+        document.getElementById('slider-time').addEventListener('input', (e) => {
+            currentYear = parseFloat(e.target.value);
+            updateVisualization();
+        });
+
+        // File Drop & Load Handling
+        const fileDrop = document.getElementById('file-drop');
+        const fileInput = document.getElementById('file-input');
+
+        fileDrop.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) parseCsvFile(e.target.files[0]);
+        });
+
+        function parseCsvFile(file) {
+            if (!file) return;
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'all';
+            }
+            
+            const statusElem = document.getElementById('loading-status');
+            if (statusElem) {
+                statusElem.textContent = 'Parsing CSV File...';
+            } else {
+                const btn = document.getElementById('fallback-upload-btn');
+                if (btn) btn.textContent = '⏳ Parsing CSV File...';
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (!results.data || results.data.length === 0) {
+                        alert("The selected CSV file appears to be empty or invalid.");
+                        return;
+                    }
+                    rawCsvData = results.data;
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                        overlay.style.pointerEvents = 'none';
+                    }
+                    updateDatasetAndSimulation();
+                    const fileInputElem = document.getElementById('file-input');
+                    if (fileInputElem) fileInputElem.value = '';
+                },
+                error: function(err) {
+                    alert("Error parsing CSV file: " + (err ? err.message : "Unknown error"));
+                }
+            });
+        }
+
+        const DEFAULT_DROPBOX_URL = "https://www.dropbox.com/scl/fi/7ehvsiadkybwgsz6db19f/hygdata_v42.csv.gz?rlkey=xao682wnk5eqrw8earmgfmiuc&dl=0";
+
+        // Cloud URL Transformer (Dropbox / GitHub / Direct)
+        function transformCloudUrl(url) {
+            if (!url) return '';
+            url = url.trim();
+            if (url.includes('dropbox.com')) {
+                url = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+                         .replace('dl=0', 'raw=1')
+                         .replace('dl=1', 'raw=1');
+                if (!url.includes('raw=1')) {
+                    url += (url.includes('?') ? '&' : '?') + 'raw=1';
+                }
+            } else if (url.includes('github.com') && url.includes('/blob/')) {
+                url = url.replace('github.com', 'raw.githubusercontent.com')
+                         .replace('/blob/', '/');
+            }
+            return url;
+        }
+
+        // Online Catalog Download & In-Memory Gzip/Plain Decompression
+        async function downloadAndDecompressOnlineHyg(customUrl) {
+            let rawUrl = customUrl ||
+                         (document.getElementById('input-online-url') ? document.getElementById('input-online-url').value : '') ||
+                         (document.getElementById('fallback-url-input') ? document.getElementById('fallback-url-input').value : '') ||
+                         DEFAULT_DROPBOX_URL;
+            const targetUrl = transformCloudUrl(rawUrl);
+
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                overlay.innerHTML = `
+                    <div class="spinner"></div>
+                    <div style="font-weight: 500; font-size: 1.1rem;" id="loading-status">Fetching star catalog dataset...</div>
+                    <div style="font-size: 0.8rem; color: var(--accent-cyan); word-break: break-all; max-width: 90%; margin-top: 4px;" id="loading-subtext">${targetUrl}</div>
+                `;
+            }
+
+            try {
+                let response;
+                try {
+                    response = await fetch(targetUrl);
+                    if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                } catch (fetchErr) {
+                    console.warn("Direct fetch failed, attempting CORS proxy...", fetchErr);
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+                    response = await fetch(proxyUrl);
+                    if (!response.ok) throw new Error(`Proxy HTTP status ${response.status}`);
+                }
+
+                const statusElem = document.getElementById('loading-status');
+                const subtextElem = document.getElementById('loading-subtext');
+
+                const arrayBuffer = await response.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+
+                // Auto-detect GZIP magic header (0x1F, 0x8B) or .gz extension
+                const isGzip = (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) || targetUrl.includes('.gz');
+
+                let csvText = '';
+                if (isGzip) {
+                    if (statusElem) statusElem.textContent = 'Decompressing gzip archive in memory...';
+                    if ('DecompressionStream' in window) {
+                        const stream = new ReadableStream({
+                            start(controller) {
+                                controller.enqueue(bytes);
+                                controller.close();
+                            }
+                        });
+                        const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+                        const blob = await new Response(decompressedStream).blob();
+                        csvText = await blob.text();
+                    } else if (window.pako) {
+                        csvText = pako.ungzip(bytes, { to: 'string' });
+                    } else {
+                        throw new Error('Gzip decompression not supported in this browser.');
+                    }
+                } else {
+                    const decoder = new TextDecoder('utf-8');
+                    csvText = decoder.decode(bytes);
+                }
+
+                if (statusElem) statusElem.textContent = 'Parsing Star Catalog CSV...';
+                if (subtextElem) subtextElem.textContent = 'Building 3D coordinates and spatial graph';
+
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (!results.data || results.data.length === 0) {
+                            alert("Downloaded CSV dataset appears to be empty.");
+                            if (overlay) { overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; }
+                            return;
+                        }
+                        rawCsvData = results.data;
+                        if (overlay) {
+                            overlay.style.opacity = '0';
+                            overlay.style.pointerEvents = 'none';
+                        }
+                        updateDatasetAndSimulation();
+                    },
+                    error: function(err) {
+                        alert("Error parsing downloaded CSV: " + (err ? err.message : "Unknown error"));
+                        if (overlay) { overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; }
+                    }
+                });
+            } catch (err) {
+                console.error("Online download failed:", err);
+                showFallbackCardUI(err.message);
+            }
+        }
+
+        function showFallbackCardUI(errorMsg = '') {
+            const overlay = document.getElementById('loading-overlay');
+            if (!overlay) return;
+            overlay.style.opacity = '1';
+            overlay.style.pointerEvents = 'auto';
+            overlay.innerHTML = `
+                <div class="fallback-card">
+                    <div class="preview-img-container">
+                        <img src="tool_preview.png" alt="Astrophage Tool Preview Screenshot">
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #ffc800; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span>⚠️</span> hygdata.csv Not Found on Local Server
+                    </div>
+                    <div style="font-size: 0.88rem; color: var(--text-dim); line-height: 1.5; text-align: center;">
+                        Paste a Dropbox/URL link, or upload a local dataset file:
+                    </div>
+                    <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="fallback-url-input" value="${DEFAULT_DROPBOX_URL}" placeholder="Paste Dropbox, GitHub, or direct URL (.csv or .csv.gz)..." style="flex: 1; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.4); color: #fff;">
+                            <button class="btn btn-primary" onclick="loadFromCustomUrl()" style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #00f2ff, #0088ff); color: #000; border: none; font-weight: 600;">
+                                🌐 Fetch
+                            </button>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-dim); text-align: left;">
+                            💡 <strong>Dropbox Tip:</strong> Paste any Dropbox share link (e.g. <code>https://www.dropbox.com/...</code>). It automatically converts to direct raw stream!
+                        </div>
+                    </div>
+                    <button class="btn" id="fallback-upload-btn" onclick="document.getElementById('file-input').click()" style="padding: 10px 20px; font-size: 0.9rem; width: 100%; margin-top: 4px; background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); color: #fff;">
+                        📁 Upload Local hygdata.csv File
+                    </button>
+                    <div style="font-size: 0.78rem; color: var(--text-dim); text-align: center;">Or drag and drop your CSV file anywhere on this screen</div>
+                </div>
+            `;
+
+            overlay.addEventListener('dragover', (e) => e.preventDefault());
+            overlay.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    parseCsvFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function loadFromCustomUrl(urlArg) {
+            const inputVal = urlArg || (document.getElementById('input-online-url') ? document.getElementById('input-online-url').value : '') || (document.getElementById('fallback-url-input') ? document.getElementById('fallback-url-input').value : '');
+            if (!inputVal) {
+                alert("Please paste a Dropbox or direct URL to your hygdata file.");
+                return;
+            }
+            downloadAndDecompressOnlineHyg(inputVal);
+        }
+
+        // Auto Load hygdata.csv (Attempts local server first, falls back to default Dropbox URL)
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('hygdata.csv')
+                .then(resp => {
+                    if (!resp.ok) throw new Error("HTTP error " + resp.status);
+                    return resp.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            rawCsvData = results.data;
+                            const overlay = document.getElementById('loading-overlay');
+                            if (overlay) {
+                                overlay.style.opacity = '0';
+                                overlay.style.pointerEvents = 'none';
+                            }
+                            updateDatasetAndSimulation();
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.warn("Local hygdata.csv not found. Auto-fetching default Dropbox dataset...", err);
+                    downloadAndDecompressOnlineHyg(DEFAULT_DROPBOX_URL);
+                });
+        });
+    </script>
+</body>
+</html>

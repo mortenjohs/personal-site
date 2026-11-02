@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyric Mystery Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .blur-text { filter: blur(1.5px); letter-spacing: 1px; transition: all 0.5s ease; }
+        .reveal-text { filter: blur(0); letter-spacing: 0; color: #f8fafc; font-style: normal; }
+    </style>
+    <style>
+    /* 0.8px is the 'sweet spot' for being readable but still looking "distorted" */
+    .blur-text { 
+        filter: blur(0.8px); 
+        transition: all 0.6s ease-out;
+        user-select: none; /* Prevents users from highlighting to bypass the blur */
+    }
+
+    /* Full clarity when revealed */
+    .reveal-text { 
+        filter: blur(0); 
+        color: #f8fafc; 
+        font-style: normal; 
+    }
+</style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div id="game-container" class="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+        
+        <div id="quiz-ui">
+            <div class="flex justify-between text-xs mb-4 text-slate-500 uppercase tracking-widest font-bold">
+                <span>Song <span id="current-idx">1</span></span>
+                <span>Score: <span id="score">0</span></span>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-xl min-h-[140px] flex flex-col items-center justify-center text-center border-b-4 border-cyan-600 mb-6">
+                <p id="lyric-display" class="blur-text text-lg italic text-cyan-200 leading-relaxed"></p>
+                <p id="reality-display" class="hidden mt-4 pt-4 border-t border-slate-800 text-sm text-slate-400 animate-pulse"></p>
+            </div>
+
+            <div id="input-section">
+                <input type="text" id="user-input" autocomplete="off" placeholder="What's the song title?" 
+                    class="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all text-center mb-4 text-lg">
+            </div>
+            
+            <button id="action-btn" class="w-full bg-cyan-600 hover:bg-cyan-500 py-4 rounded-xl font-black tracking-widest transition-all transform active:scale-95 shadow-lg">
+                CHECK ANSWER
+            </button>
+            
+            <p id="feedback" class="mt-6 text-center font-bold text-lg min-h-[28px]"></p>
+        </div>
+
+        <div id="result-ui" class="hidden text-center py-10">
+            <h2 class="text-3xl font-black mb-2">FINISH!</h2>
+            <p class="text-slate-400 mb-8">You decoded the melodies.</p>
+            <p class="text-6xl font-black text-cyan-400 mb-10" id="final-score"></p>
+            <button onclick="location.reload()" class="bg-cyan-600 hover:bg-cyan-500 w-full py-4 rounded-xl font-bold transition-all">
+                PLAY AGAIN
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let songs = [];
+        let currentIndex = 0;
+        let score = 0;
+        let isRevealed = false; // Track if we are in "reveal" mode or "guess" mode
+
+        const lyricDisplay = document.getElementById('lyric-display');
+        const realityDisplay = document.getElementById('reality-display');
+        const userInput = document.getElementById('user-input');
+        const actionBtn = document.getElementById('action-btn');
+        const feedback = document.getElementById('feedback');
+        const scoreDisplay = document.getElementById('score');
+
+        async function initGame() {
+            try {
+                const response = await fetch('songs.json');
+                songs = await response.json();
+                songs.sort(() => Math.random() - 0.5);
+                showQuestion();
+            } catch (err) {
+                lyricDisplay.innerText = "Error loading songs. Check your JSON file!";
+            }
+        }
+
+        function showQuestion() {
+            isRevealed = false;
+            const currentSong = songs[currentIndex];
+            
+            // Reset UI for new question
+            lyricDisplay.innerText = `"${currentSong.distorted}"`;
+            lyricDisplay.className = "blur-text text-lg italic text-cyan-200 leading-relaxed";
+            
+            realityDisplay.classList.add('hidden');
+            realityDisplay.innerText = "";
+            
+            userInput.value = '';
+            userInput.disabled = false;
+            userInput.classList.remove('opacity-50');
+            
+            feedback.innerText = '';
+            actionBtn.innerText = "CHECK ANSWER";
+            actionBtn.className = "w-full bg-cyan-600 hover:bg-cyan-500 py-4 rounded-xl font-black tracking-widest transition-all shadow-lg";
+            
+            document.getElementById('current-idx').innerText = currentIndex + 1;
+            userInput.focus();
+        }
+
+        function handleAction() {
+            if (!isRevealed) {
+                checkAnswer();
+            } else {
+                nextQuestion();
+            }
+        }
+
+        function checkAnswer() {
+            const guess = userInput.value.trim().toLowerCase();
+            const actual = songs[currentIndex].answer.toLowerCase();
+            const currentSong = songs[currentIndex];
+
+            isRevealed = true;
+            userInput.disabled = true;
+            userInput.classList.add('opacity-50');
+
+            // Logic: Exact match or simple inclusion for ease
+            if (guess === actual || (guess.length > 3 && actual.includes(guess))) {
+                score++;
+                feedback.innerHTML = `<span class="text-green-400">CORRECT!</span>`;
+            } else {
+                feedback.innerHTML = `<span class="text-red-400">WRONG:</span> <span class="text-white text-sm">${currentSong.answer}</span>`;
+            }
+
+            // Reveal Reality
+            lyricDisplay.className = "reveal-text text-lg font-medium leading-relaxed";
+            realityDisplay.innerText = `Reality: ${currentSong.reality}`;
+            realityDisplay.classList.remove('hidden');
+
+            scoreDisplay.innerText = score;
+            
+            // Change button to Next
+            actionBtn.innerText = "NEXT QUESTION →";
+            actionBtn.className = "w-full bg-slate-600 hover:bg-slate-500 py-4 rounded-xl font-black tracking-widest transition-all shadow-lg";
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < songs.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-ui').classList.add('hidden');
+            document.getElementById('result-ui').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `${score} / ${songs.length}`;
+        }
+
+        actionBtn.addEventListener('click', handleAction);
+        userInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') handleAction(); 
+        });
+
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>1bisHill Setlist Visualizer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 {
+            color: #fff;
+        }
+        p {
+            line-height: 1.6;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+        }
+        img:hover {
+            transform: scale(1.02);
+            cursor: pointer;
+        }
+        .instruction {
+            font-style: italic;
+            color: #8b949e;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>1bisHill Setlist Evolution</h1>
+    <p>
+        This bump plot visualizes the evolution of <strong>1bisHill</strong>'s setlists over time. 
+        It tracks the average position of songs across different years. Songs plotted at the top are played earlier in the show (e.g., openers), 
+        while songs at the bottom are played towards the end or during encores. 
+    </p>
+    <a href="1bisHill_bumplot.html">
+        <img src="1bisHill_bumplot.png" alt="1bisHill Bump Plot">
+    </a>
+    <p class="instruction">👆 Click the image to view the interactive chart, where you can isolate specific songs!</p>
+</body>
+</html>

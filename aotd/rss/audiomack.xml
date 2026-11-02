@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <author>
+    <name>mortenjohs</name>
+  </author>
+  <id>https://ervik.hopto.org/aotd/rss//audiomack.xml</id>
+  <title>Album of the day on audiomack</title>
+  <updated>2026-03-10T06:56:06+00:00</updated>
+  <entry>
+    <id>https://audiomack.com/album/the-decemberists/her-majesty-the-decemberists</id>
+    <link href="https://audiomack.com/album/the-decemberists/her-majesty-the-decemberists"/>
+    <summary>Random suggestion similar to: Offa Rex.</summary>
+    <title>2022-01-27: The Decemberists -- Her Majesty the Decemberists</title>
+    <updated>2022-01-27T00:00:00+00:00</updated>
+    <dc:date>2022-01-27T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/ofmontreal/satanic-panic-in-the-attic</id>
+    <link href="https://audiomack.com/album/ofmontreal/satanic-panic-in-the-attic"/>
+    <summary>Random suggestion similar to: Elf Power.</summary>
+    <title>2022-01-28: of Montreal -- Satanic Panic in the Attic</title>
+    <updated>2022-01-28T00:00:00+00:00</updated>
+    <dc:date>2022-01-28T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/angel-olsen/all-mirrors</id>
+    <link href="https://audiomack.com/album/angel-olsen/all-mirrors"/>
+    <summary>Random suggestion similar to: St. Vincent.</summary>
+    <title>2022-01-31: Angel Olsen -- All Mirrors</title>
+    <updated>2022-01-31T00:00:00+00:00</updated>
+    <dc:date>2022-01-31T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/okkervil-river/the-silver-gymnasium</id>
+    <link href="https://audiomack.com/album/okkervil-river/the-silver-gymnasium"/>
+    <summary>Random suggestion similar to: Ted Leo and the Pharmacists.</summary>
+    <title>2022-02-09: Okkervil River -- The Silver Gymnasium</title>
+    <updated>2022-02-09T00:00:00+00:00</updated>
+    <dc:date>2022-02-09T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/the-rolling-stone/let-it-bleed</id>
+    <link href="https://audiomack.com/album/the-rolling-stone/let-it-bleed"/>
+    <summary>Random suggestion similar to: David Bowie.</summary>
+    <title>2022-03-06: The Rolling Stones -- Let It Bleed (Remastered 2019)</title>
+    <updated>2022-03-06T00:00:00+00:00</updated>
+    <dc:date>2022-03-06T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/ironmaiden/fear-of-the-dark-2015-remaster</id>
+    <link href="https://audiomack.com/album/ironmaiden/fear-of-the-dark-2015-remaster"/>
+    <summary>Random suggestion similar to: Black Sabbath.</summary>
+    <title>2022-03-14: Iron Maiden -- Fear of the Dark (2015 Remaster)</title>
+    <updated>2022-03-14T00:00:00+00:00</updated>
+    <dc:date>2022-03-14T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/glennbranca/the-third-ascension</id>
+    <link href="https://audiomack.com/album/glennbranca/the-third-ascension"/>
+    <summary>Random suggestion similar to: Swans.</summary>
+    <title>2022-03-15: Glenn Branca -- The Ascension</title>
+    <updated>2022-03-15T00:00:00+00:00</updated>
+    <dc:date>2022-03-15T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/calexico/hot-rail</id>
+    <link href="https://audiomack.com/album/calexico/hot-rail"/>
+    <summary>Random suggestion similar to: Tindersticks.</summary>
+    <title>2022-04-02: Calexico -- Hot Rail</title>
+    <updated>2022-04-02T00:00:00+00:00</updated>
+    <dc:date>2022-04-02T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/crosby-stills-nash-young/deja-vu-50th-anniversary-deluxe-edition-9148123</id>
+    <link href="https://audiomack.com/album/crosby-stills-nash-young/deja-vu-50th-anniversary-deluxe-edition-9148123"/>
+    <summary>Random suggestion similar to: Crosby, Stills &amp; Nash.</summary>
+    <title>2022-04-07: Crosby, Stills, Nash &amp; Young -- Déjà Vu (50th Anniversary Deluxe Edition)</title>
+    <updated>2022-04-07T00:00:00+00:00</updated>
+    <dc:date>2022-04-07T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/miles-davis/birth-of-the-cool-2260447</id>
+    <link href="https://audiomack.com/album/miles-davis/birth-of-the-cool-2260447"/>
+    <summary>Random suggestion similar to: Bill Evans.</summary>
+    <title>2022-04-13: Miles Davis -- Birth of the Cool</title>
+    <updated>2022-04-13T00:00:00+00:00</updated>
+    <dc:date>2022-04-13T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/wolf-parade/apologies-to-the-queen-mary</id>
+    <link href="https://audiomack.com/album/wolf-parade/apologies-to-the-queen-mary"/>
+    <summary>Random suggestion similar to: Clap Your Hands Say Yeah.</summary>
+    <title>2022-04-15: Wolf Parade -- Apologies to the Queen Mary</title>
+    <updated>2022-04-15T00:00:00+00:00</updated>
+    <dc:date>2022-04-15T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/the-books/thought-for-food-remastered</id>
+    <link href="https://audiomack.com/album/the-books/thought-for-food-remastered"/>
+    <summary>Random suggestion similar to: Tunng.</summary>
+    <title>2022-04-29: The Books -- Thought for Food (Remastered)</title>
+    <updated>2022-04-29T00:00:00+00:00</updated>
+    <dc:date>2022-04-29T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/elliottsmith/roman-candle</id>
+    <link href="https://audiomack.com/album/elliottsmith/roman-candle"/>
+    <summary>Random suggestion similar to: Daniel Johnston.</summary>
+    <title>2022-05-01: Elliott Smith -- Roman Candle (Remastered)</title>
+    <updated>2022-05-01T00:00:00+00:00</updated>
+    <dc:date>2022-05-01T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/theavettbrothers/the-carpenter-2080254</id>
+    <link href="https://audiomack.com/album/theavettbrothers/the-carpenter-2080254"/>
+    <summary>Random suggestion similar to: Josh Ritter.</summary>
+    <title>2022-05-14: The Avett Brothers -- The Carpenter</title>
+    <updated>2022-05-14T00:00:00+00:00</updated>
+    <dc:date>2022-05-14T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/jenny-hval/the-long-sleep</id>
+    <link href="https://audiomack.com/album/jenny-hval/the-long-sleep"/>
+    <summary>Random suggestion similar to: Perfume Genius.</summary>
+    <title>2022-05-17: Jenny Hval -- The Long Sleep - EP</title>
+    <updated>2022-05-17T00:00:00+00:00</updated>
+    <dc:date>2022-05-17T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/disasterpeace/fez-original-game-soundtrack</id>
+    <link href="https://audiomack.com/album/disasterpeace/fez-original-game-soundtrack"/>
+    <summary>Random suggestion similar to: Ben Prunty.</summary>
+    <title>2022-05-20: Disasterpeace -- FEZ (Original Game Soundtrack)</title>
+    <updated>2022-05-20T00:00:00+00:00</updated>
+    <dc:date>2022-05-20T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/uriahheepofficial/demons-and-wizards-expanded-version</id>
+    <link href="https://audiomack.com/album/uriahheepofficial/demons-and-wizards-expanded-version"/>
+    <summary>Random suggestion similar to: Spooky Tooth.</summary>
+    <title>2022-05-24: Uriah Heep -- Demons and Wizards (Expanded Version)</title>
+    <updated>2022-05-24T00:00:00+00:00</updated>
+    <dc:date>2022-05-24T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/petergreen/white-sky-bonus-track-edition</id>
+    <link href="https://audiomack.com/album/petergreen/white-sky-bonus-track-edition"/>
+    <summary>Random suggestion similar to: John Mayall.</summary>
+    <title>2022-06-05: Peter Green -- White Sky (Bonus Track Edition)</title>
+    <updated>2022-06-05T00:00:00+00:00</updated>
+    <dc:date>2022-06-05T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/vic-chesnutt/is-the-actor-happy</id>
+    <link href="https://audiomack.com/album/vic-chesnutt/is-the-actor-happy"/>
+    <summary>Random suggestion similar to: Magnolia Electric Co..</summary>
+    <title>2022-06-09: Vic Chesnutt -- Is the Actor Happy?</title>
+    <updated>2022-06-09T00:00:00+00:00</updated>
+    <dc:date>2022-06-09T00:00:00+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>https://audiomack.com/album/squarepusher/hard-normal-daddy</id>
+    <link href="https://audiomack.com/album/squarepusher/hard-normal-daddy"/>
+    <summary>Random suggestion similar to: Bogdan Raczynski.</summary>
+    <title>2022-06-20: Squarepusher -- Hard Normal Daddy</title>
+    <updated>2022-06-20T00:00:00+00:00</updated>
+    <dc:date>2022-06-20T00:00:00+00:00</dc:date>
+  </entry>
+  <dc:date>2026-03-10T06:56:06+00:00</dc:date>
+</feed>

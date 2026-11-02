@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Date Picker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Optional: You can customize Tailwind configuration here
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        // Sets 'Inter' as the default font
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Add a little extra style for better visual appeal */
+        body {
+            font-family: 'Inter', sans-serif; /* Ensure Inter font is applied */
+        }
+        /* Style for the result text */
+        #date-output {
+             /* Smooth transition for text changes */
+            transition: opacity 0.3s ease-in-out;
+        }
+        /* Style for active/inactive mode buttons */
+        .mode-button.active {
+            /* Tailwind classes for active state */
+            @apply bg-indigo-600 text-white ring-2 ring-offset-2 ring-indigo-500;
+        }
+        .mode-button:not(.active) {
+             /* Tailwind classes for inactive state */
+            @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="bg-white p-6 sm:p-8 md:p-10 rounded-xl shadow-2xl w-full max-w-lg text-center">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">Random Date Picker</h1>
+
+        <div class="controls flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div class="control-group w-full sm:w-auto">
+                <label for="month-select" class="block text-sm font-medium text-gray-700 mb-1 text-left sm:text-center">Month:</label>
+                <select id="month-select" name="month" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm appearance-none cursor-pointer">
+                    </select>
+            </div>
+            <div class="control-group w-full sm:w-auto">
+                <label for="year-select" class="block text-sm font-medium text-gray-700 mb-1 text-left sm:text-center">Year:</label>
+                <select id="year-select" name="year" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm appearance-none cursor-pointer">
+                    </select>
+            </div>
+        </div>
+
+        <div class="mb-6 sm:mb-8">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Randomization Mode:</label>
+            <div id="mode-selector" class="flex flex-wrap justify-center gap-2 sm:gap-3">
+                <button data-mode="uniform" class="mode-button active px-4 py-2 text-sm font-medium rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none">
+                    Uniform (Any Date)
+                </button>
+                <button data-mode="end" class="mode-button px-4 py-2 text-sm font-medium rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none">
+                    End Weighted
+                </button>
+                <button data-mode="middle" class="mode-button px-4 py-2 text-sm font-medium rounded-md shadow-sm transition duration-150 ease-in-out focus:outline-none">
+                    Middle Weighted
+                </button>
+            </div>
+        </div>
+
+        <button id="generate-button" class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-lg text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out transform hover:scale-105">
+            Pick a Date!
+        </button>
+
+        <div id="result-display" class="mt-8 sm:mt-10 p-6 bg-gray-100 rounded-lg min-h-[100px] flex items-center justify-center border border-gray-200 shadow-inner">
+            <p id="date-output" class="text-2xl sm:text-3xl md:text-4xl font-semibold text-indigo-700 opacity-0">
+                Select options and click the button.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Get references to DOM Elements ---
+        const monthSelect = document.getElementById('month-select');
+        const yearSelect = document.getElementById('year-select');
+        const generateButton = document.getElementById('generate-button');
+        const dateOutput = document.getElementById('date-output');
+        const modeSelector = document.getElementById('mode-selector');
+        const modeButtons = modeSelector.querySelectorAll('.mode-button');
+
+        // --- State Variables ---
+        let currentMode = 'uniform'; // Default mode
+
+        // --- Constants and Initial Setup ---
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth(); // 0-11
+        const yearRange = 10; // Number of years before and after the current year to show
+
+        // --- Core Functions ---
+
+        /**
+         * Populates the month dropdown select element.
+         */
+        function populateMonths() {
+            months.forEach((month, index) => {
+                const option = document.createElement('option');
+                option.value = index; // Store month index (0-11)
+                option.textContent = month;
+                monthSelect.appendChild(option);
+            });
+            monthSelect.value = currentMonth; // Set default
+        }
+
+        /**
+         * Populates the year dropdown select element.
+         */
+        function populateYears() {
+            const startYear = currentYear - yearRange;
+            const endYear = currentYear + yearRange;
+            for (let year = endYear; year >= startYear; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            yearSelect.value = currentYear; // Set default
+        }
+
+        /**
+         * Calculates the number of days in a given month and year.
+         * @param {number} year - The full year.
+         * @param {number} monthIndex - The month index (0-11).
+         * @returns {number} - The number of days in the specified month.
+         */
+        function getDaysInMonth(year, monthIndex) {
+            return new Date(year, monthIndex + 1, 0).getDate();
+        }
+
+        /**
+         * Updates the visual state of the mode buttons.
+         * @param {string} selectedMode - The mode ('uniform', 'end', 'middle') that should be active.
+         */
+        function updateModeButtons(selectedMode) {
+            modeButtons.forEach(button => {
+                if (button.dataset.mode === selectedMode) {
+                    button.classList.add('active');
+                    // Manually add Tailwind classes for active state if @apply doesn't work directly in JS
+                    button.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    button.classList.add('bg-indigo-600', 'text-white', 'ring-2', 'ring-offset-2', 'ring-indigo-500');
+                } else {
+                    button.classList.remove('active');
+                     // Manually add Tailwind classes for inactive state
+                    button.classList.remove('bg-indigo-600', 'text-white', 'ring-2', 'ring-offset-2', 'ring-indigo-500');
+                    button.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                }
+            });
+        }
+
+        /**
+         * Generates a random date based on the selected month, year, and randomization mode.
+         */
+        function generateRandomDate() {
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+            const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+            let randomDay = 1; // Default to 1
+
+            switch (currentMode) {
+                case 'uniform':
+                    // Any day has an equal chance
+                    randomDay = Math.floor(Math.random() * daysInMonth) + 1;
+                    break;
+                case 'end':
+                    // Weighted towards the last 7 days
+                    const endRangeStart = Math.max(1, daysInMonth - 6); // Last 7 days (or fewer if month is short)
+                    const endRangeSize = daysInMonth - endRangeStart + 1;
+                    randomDay = Math.floor(Math.random() * endRangeSize) + endRangeStart;
+                    break;
+                case 'middle':
+                    // Weighted towards the middle (approximation of normal distribution)
+                    // Average two random numbers to get a bias towards the center
+                    const r1 = Math.random();
+                    const r2 = Math.random();
+                    const avg = (r1 + r2) / 2; // Tends towards 0.5
+                    // Scale the average to the range [1, daysInMonth]
+                    const scaledDay = avg * (daysInMonth - 1) + 1;
+                    randomDay = Math.round(scaledDay);
+                    // Clamp the value just in case rounding goes out of bounds (edge case)
+                    randomDay = Math.max(1, Math.min(daysInMonth, randomDay));
+                    break;
+            }
+
+            // Create the final Date object
+            const randomDate = new Date(selectedYear, selectedMonth, randomDay);
+
+            // Format the date nicely
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = randomDate.toLocaleDateString('en-US', options);
+
+            // Display the result with a fade-in effect
+            dateOutput.style.opacity = 0; // Start transparent
+            setTimeout(() => { // Allow time for opacity to reset before fading in
+                 dateOutput.textContent = formattedDate;
+                 dateOutput.style.opacity = 1; // Fade in
+            }, 50); // Short delay
+        }
+
+        // --- Initialization and Event Listeners ---
+
+        // Populate dropdowns when the DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            populateMonths();
+            populateYears();
+            updateModeButtons(currentMode); // Set initial button state
+            dateOutput.style.opacity = 1; // Show initial placeholder text
+        });
+
+        // Handle clicks on mode buttons
+        modeSelector.addEventListener('click', (event) => {
+            // Check if the clicked element is a mode button
+            const button = event.target.closest('.mode-button');
+            if (button && button.dataset.mode) {
+                currentMode = button.dataset.mode; // Update the current mode state
+                updateModeButtons(currentMode); // Update button visuals
+            }
+        });
+
+        // Generate date when the main button is clicked
+        generateButton.addEventListener('click', generateRandomDate);
+
+    </script>
+
+</body>
+</html>

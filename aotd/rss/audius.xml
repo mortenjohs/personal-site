@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <author>
+    <name>mortenjohs</name>
+  </author>
+  <id>https://ervik.hopto.org/aotd/rss//audius.xml</id>
+  <title>Album of the day on audius</title>
+  <updated>2026-03-05T07:43:30+00:00</updated>
+  <entry>
+    <id>https://audius.co/playlists/DBx2x</id>
+    <link href="https://audius.co/playlists/DBx2x"/>
+    <summary>Random suggestion similar to: Liars.</summary>
+    <title>2023-03-02: No Age -- Everything In Between</title>
+    <updated>2023-03-02T00:00:00+00:00</updated>
+    <dc:date>2023-03-02T00:00:00+00:00</dc:date>
+  </entry>
+  <dc:date>2026-03-05T07:43:30+00:00</dc:date>
+</feed>

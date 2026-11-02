@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <author>
+    <name>mortenjohs</name>
+  </author>
+  <id>https://ervik.hopto.org/aotd/rss//spinrilla.xml</id>
+  <title>Album of the day on spinrilla</title>
+  <updated>2025-08-12T06:02:13+00:00</updated>
+  <entry>
+    <id>https://spinrilla.com/mixtapes/bey-reme-lalaland</id>
+    <link href="https://spinrilla.com/mixtapes/bey-reme-lalaland"/>
+    <summary>Random suggestion similar to: Jon Brion.</summary>
+    <title>2022-05-06: Various Artists -- La La Land (Original Motion Picture Soundtrack)</title>
+    <updated>2022-05-06T00:00:00+00:00</updated>
+    <dc:date>2022-05-06T00:00:00+00:00</dc:date>
+  </entry>
+  <dc:date>2025-08-12T06:02:13+00:00</dc:date>
+</feed>

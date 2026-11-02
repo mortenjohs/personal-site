@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Toilet Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Cat Toilet Visualizer</h1>
+        <p>Ensure your cat has enough space! The toilet should have a diagonal of <strong>1.5x</strong> the cat's length.</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="cat-size">Cat Size (nose to base of tail, cm): <span id="cat-size-val">50</span></label>
+                <input type="range" id="cat-size" min="20" max="80" value="50">
+            </div>
+            <div class="control-group">
+                <label for="length">Length (cm): <span id="length-val">50</span></label>
+                <input type="range" id="length" min="30" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <label for="width">Width (cm): <span id="width-val">50</span></label>
+                <input type="range" id="width" min="30" max="100" value="50">
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span>Required Diagonal:</span>
+                <span id="target-diagonal-val">75.0 cm</span>
+            </div>
+            <div class="stat-item">
+                <span>Current Diagonal:</span>
+                <span id="diagonal-val" class="result">70.7 cm</span>
+            </div>
+            <div id="status-msg" class="status-msg alert">Too small!</div>
+        </div>
+
+        <div class="visualization">
+            <svg id="visualizer" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
+                <!-- Scale indicator -->
+                <line x1="10" y1="580" x2="60" y2="580" stroke="#ccc" stroke-width="2" />
+                <text x="15" y="570" fill="#ccc" font-size="12">10cm</text>
+                
+                <!-- Toilet Rectangle -->
+                <rect id="toilet-rect" x="50" y="50" width="250" height="250" fill="rgba(52, 152, 219, 0.2)" stroke="#3498db" stroke-width="3" />
+                
+                <!-- Diagonal Line -->
+                <line id="diagonal-line" x1="50" y1="50" x2="300" y2="300" stroke="#e74c3c" stroke-width="2" stroke-dasharray="5,5" />
+
+                <!-- Cat Silhouette -->
+                <g id="cat-layer">
+                    <!-- Body: centered around (0,0) in local space -->
+                    <!-- Path represents a cat from above: Head at left (-32.5), Tail base at right (32.5) -->
+                    <path id="cat-silhouette" d="
+                        M -32.5,0 
+                        C -32.5,-12 -25,-18 -15,-18 
+                        S 10,-15 25,-12 
+                        S 32.5,-6 32.5,0 
+                        S 25,12 10,15 
+                        S -25,18 -32.5,0 
+                        M -32.5,-5 L -38,-12 L -28,-10 
+                        M -32.5,5 L -38,12 L -28,10
+                        M -15,-18 C -18,-25 -22,-25 -25,-18
+                        M -15,18 C -18,25 -22,25 -25,18
+                        M 15,-15 C 18,-22 22,-22 25,-15
+                        M 15,15 C 18,22 22,22 25,15
+                    " fill="rgba(44, 62, 80, 0.6)" />
+                    <!-- Tail -->
+                    <path d="M 32.5,0 C 45,0 55,10 50,20 S 35,25 30,15" fill="none" stroke="rgba(44, 62, 80, 0.6)" stroke-width="4" stroke-linecap="round" />
+                </g>
+            </svg>
+        </div>
+
+        <div class="footer-controls">
+            <div class="unit-toggle">
+                <label>
+                    <input type="radio" name="unit" value="cm" checked> cm
+                </label>
+                <label>
+                    <input type="radio" name="unit" value="in"> inches
+                </label>
+            </div>
+            <button id="copy-permalink" class="btn-secondary">Copy Permalink</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

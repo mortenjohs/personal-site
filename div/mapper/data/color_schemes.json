@@ -1,0 +1,27 @@
+{ 
+	"colors": [
+		{
+			"title": "Original", 
+			"data":[
+				"rgb(207,228,203)",
+				"rgb(176,218,169)",
+				"rgb(116,196,118)",
+				"rgb(49,163,84)",
+				"rgb(0,109,44)"
+			], 
+			"type":"sequential"
+		},
+		{
+			"title": "Economist",
+			"type":"diverging",
+			"data": [
+				"#D7E3DA",
+				"#A6C7B2",
+				"#DBC3A6",
+				"#EDA38A",
+				"#F37151",
+				"#ED1B24"
+			]
+		}
+	]
+}
